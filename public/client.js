@@ -106,11 +106,13 @@ function renderLobby() {
   $('lobby-entry').style.display = 'none';
   $('lobby-room').style.display = 'block';
   $('lobby-code').textContent = S.code;
+  const bc = {};
+  (S.buyins || []).forEach(b => { bc[b.seat] = (bc[b.seat] || 0) + 1; });
   $('lobby-players').innerHTML = S.players.map(p =>
     '<div class="lp"><span>' + esc(p.name) +
     (p.seat === S.hostSeat ? ' <span class="host-tag">[房主]</span>' : '') +
     (p.seat === S.you ? ' <span class="host-tag">（你）</span>' : '') + '</span>' +
-    '<span>' + (p.connected ? '筹码 ' + p.chips : '<span class="off">离线</span>') + '</span></div>'
+    '<span>' + (p.connected ? '筹码 ' + p.chips + ' · 买入 ' + (bc[p.seat] || 0) + ' 次' : '<span class="off">离线</span>') + '</span></div>'
   ).join('');
   const isHost = S.you === S.hostSeat;
   $('btn-start').style.display = isHost ? '' : 'none';
@@ -121,6 +123,32 @@ function renderLobby() {
 }
 
 function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+
+/* ---------------- 买入记录 ---------------- */
+function fmtTime(ts) {
+  const d = new Date(ts);
+  const p = n => String(n).padStart(2, '0');
+  return p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+}
+
+function renderBuyins() {
+  if (!S || !S.buyins) return;
+  const totals = {};
+  for (const b of S.buyins) {
+    if (!totals[b.name]) totals[b.name] = { n: 0, amt: 0 };
+    totals[b.name].n++;
+    totals[b.name].amt += b.amount;
+  }
+  const names = Object.keys(totals);
+  $('buyins-summary').innerHTML = names.length ?
+    names.map(n => '<span>' + esc(n) + '：买入 ' + totals[n].n + ' 次 / 共 ' + totals[n].amt + '</span>').join('') :
+    '<span>暂无记录</span>';
+  $('buyins-list').innerHTML = S.buyins.length ? S.buyins.slice().reverse().map(b =>
+    '<div class="bi"><span><b>' + esc(b.name) + '</b> <span class="lb">' + esc(b.label) +
+    (b.handNo ? ' · 第' + b.handNo + '局' : ' · 开局前') + '</span></span>' +
+    '<span><span class="amt">+' + b.amount + '</span> <span class="t">' + fmtTime(b.ts) + '</span></span></div>'
+  ).join('') : '<div class="lb" style="text-align:center">暂无买入记录</div>';
+}
 
 /* ---------------- 座位坐标 ---------------- */
 const SEAT_POS = [
@@ -348,6 +376,9 @@ function initControls() {
   });
   $('btn-next').addEventListener('click', () => ws.send(JSON.stringify({ t: 'next' })));
   $('btn-rebuy').addEventListener('click', () => ws.send(JSON.stringify({ t: 'rebuy' })));
+  $('btn-buyins').addEventListener('click', () => { renderBuyins(); $('buyins-overlay').style.display = 'flex'; });
+  $('btn-buyins-close').addEventListener('click', () => { $('buyins-overlay').style.display = 'none'; });
+  $('buyins-overlay').addEventListener('click', (e) => { if (e.target === $('buyins-overlay')) $('buyins-overlay').style.display = 'none'; });
 }
 
 /* ---------------- 日志 ---------------- */
