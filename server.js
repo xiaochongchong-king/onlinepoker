@@ -158,6 +158,7 @@ function createRoom(host, name) {
   const room = {
     code: code, players: [], hostSeat: 0, handNo: 0, hid: 0,
     dealer: -1, sbIdx: -1, bbIdx: -1, game: null, pending: null,
+    buyins: [],               // 买入记录：[{seat, name, amount, label, handNo, ts}]
     createdAt: Date.now()
   };
   rooms.set(code, room);
@@ -177,6 +178,12 @@ function addPlayer(room, ws, name) {
   ws._player = p;
   ws._room = room;
   return p;
+}
+
+/** 记录一次买入（初始/重新），并广播日志 */
+function recordBuyin(room, p, label) {
+  room.buyins.push({ seat: p.seat, name: p.name, amount: START_CHIPS, label: label, handNo: room.handNo, ts: Date.now() });
+  if (room.buyins.length > 200) room.buyins.shift();
 }
 
 function logTo(room, msg, cls) {
@@ -222,6 +229,7 @@ function viewFor(room, me) {
     winners: g ? g.winners : [],
     revealAll: g ? g.revealAll : false,
     result: g ? g.result : null,
+    buyins: room.buyins,
     you: me ? me.seat : -1,
     players: room.players.map(p => {
       const showFace = p.inHand && p.hand.length > 0 &&
@@ -556,7 +564,8 @@ function handleMessage(ws, msg) {
   if (m.t === 'create') {
     const name = String(m.name || '').replace(/[<>&"']/g, '').trim().slice(0, 8) || '玩家' + Math.floor(Math.random() * 100);
     const r = createRoom(ws, name);
-    logTo(r, name + ' 创建了房间，房间码 ' + r.code, 'sys');
+    recordBuyin(r, ws._player, '初始买入');
+    logTo(r, name + ' 创建了房间（房间码 ' + r.code + '）并买入 ' + START_CHIPS + ' 筹码', 'sys');
     broadcastState(r);
     return;
   }
@@ -566,7 +575,8 @@ function handleMessage(ws, msg) {
     if (r.players.length >= 6) return send(ws, { t: 'error', msg: '房间已满（6 人）' });
     const name = String(m.name || '').replace(/[<>&"']/g, '').trim().slice(0, 8) || '玩家' + Math.floor(Math.random() * 100);
     addPlayer(r, ws, name);
-    logTo(r, name + ' 加入了房间', 'sys');
+    recordBuyin(r, ws._player, '初始买入');
+    logTo(r, name + ' 加入房间并买入 ' + START_CHIPS + ' 筹码', 'sys');
     broadcastState(r);
     return;
   }
@@ -576,6 +586,7 @@ function handleMessage(ws, msg) {
   if (m.t === 'rebuy') {
     if (p.chips > 0) return send(ws, { t: 'error', msg: '还有筹码，无需买入' });
     p.chips = START_CHIPS;
+    recordBuyin(room, p, '重新买入');
     logTo(room, p.name + ' 重新买入 ' + START_CHIPS + ' 筹码', 'sys');
     broadcastState(room);
     return;
