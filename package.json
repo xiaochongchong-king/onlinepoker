@@ -1,0 +1,12 @@
+{
+  "name": "onlinepoker",
+  "version": "1.0.0",
+  "description": "在线多人德州扑克（WebSocket 房间制，2~6 人真人对战）",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}
