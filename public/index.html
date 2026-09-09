@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>德州扑克 · 在线房间</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<header id="topbar">
+  <h1>♠ 德州扑克 · 在线房间</h1>
+  <div class="hand-no">房间 <b id="room-code">—</b> · 第 <span id="hand-no">0</span> 局 · 盲注 10 / 20</div>
+  <button id="btn-leave" onclick="location.reload()">离开房间</button>
+</header>
+
+<div id="main">
+  <div id="table-wrap">
+    <div id="table">
+      <div id="pot-area"></div>
+      <div id="community"></div>
+      <div id="seats"></div>
+    </div>
+  </div>
+  <aside id="log-panel">
+    <h3>游戏日志</h3>
+    <div id="log"></div>
+  </aside>
+</div>
+
+<footer id="controls">
+  <div id="hint"></div>
+  <div id="timer-box">
+    <div id="timer-num">60</div>
+    <div id="timer-track"><div id="timer-bar"></div></div>
+  </div>
+  <button id="btn-fold" disabled>弃牌</button>
+  <button id="btn-call" disabled>过牌</button>
+  <div id="raise-box">
+    <input type="range" id="raise-slider" disabled>
+    <span id="raise-amt"></span>
+    <button id="btn-raise" disabled>加注</button>
+  </div>
+  <button id="btn-allin" disabled>全下</button>
+</footer>
+
+<div id="overlay">
+  <div id="panel">
+    <div id="panel-title"></div>
+    <div id="panel-body"></div>
+    <div id="panel-note"></div>
+    <button id="btn-rebuy">重新买入 1000</button>
+    <button id="btn-next">下一局</button>
+  </div>
+</div>
+
+<div id="lobby">
+  <div id="lobby-panel">
+    <h1>♠ 在线德州扑克</h1>
+    <div id="lobby-entry">
+      <input id="name-input" maxlength="8" placeholder="你的昵称（最多8字）">
+      <button id="btn-create">创建房间</button>
+      <div class="lobby-join">
+        <input id="code-input" maxlength="4" placeholder="房间码">
+        <button id="btn-join">加入房间</button>
+      </div>
+      <div id="lobby-msg"></div>
+    </div>
+    <div id="lobby-room">
+      <div class="room-code-tip">房间码（发给好友加入）</div>
+      <div id="lobby-code"></div>
+      <div id="lobby-players"></div>
+      <button id="btn-start">开始游戏</button>
+      <div id="lobby-wait">等待房主开始…</div>
+    </div>
+    <div id="lobby-conn">连接中…</div>
+  </div>
+</div>
+
+<script src="/client.js"></script>
+</body>
+</html>
