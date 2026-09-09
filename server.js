@@ -171,7 +171,7 @@ function addPlayer(room, ws, name) {
     seat: room.players.length, ws: ws, name: name, connected: true,
     chips: START_CHIPS, inHand: false,
     hand: [], bet: 0, totalBetThisHand: 0,
-    folded: false, allIn: false, acted: false, showHand: ''
+    folded: false, allIn: false, acted: false, showHand: '', lastAction: ''
   };
   room.players.push(p);
   ws._player = p;
@@ -230,7 +230,7 @@ function viewFor(room, me) {
       return {
         seat: p.seat, name: p.name, chips: p.chips, bet: p.bet,
         inHand: p.inHand, folded: p.folded, allIn: p.allIn,
-        connected: p.connected,
+        connected: p.connected, lastAction: p.lastAction || '',
         cards: p.hand.length ? (showFace ? p.hand : [null, null]) : [],
         showHand: p.showHand || ''
       };
@@ -279,10 +279,12 @@ function doAction(room, p, act) {
     p.folded = true;
     logTo(room, p.name + ' 弃牌', 'act');
   } else if (act.type === 'check') {
+    p.lastAction = 'check';
     logTo(room, p.name + ' 过牌', 'act');
   } else if (act.type === 'call') {
     const amt = Math.min(g.currentBet - p.bet, p.chips);
     commitChips(p, amt);
+    p.lastAction = p.allIn ? 'All in ' + amt : 'call ' + amt;
     logTo(room, p.name + ' 跟注 ' + amt + (p.allIn ? '（全下）' : ''), 'act');
   } else if (act.type === 'raise') {
     let target = Math.min(Math.round(act.target || 0), p.bet + p.chips);
@@ -291,10 +293,12 @@ function doAction(room, p, act) {
     commitChips(p, target - p.bet);
     if (inc >= g.minRaise) g.minRaise = inc;
     g.currentBet = target;
+    p.lastAction = p.allIn ? 'All in ' + target : 'raise ' + target;
     logTo(room, p.name + ' 加注到 ' + target + (p.allIn ? '（全下）' : ''), 'act');
   } else if (act.type === 'allin') {
     const target = p.bet + p.chips;
     commitChips(p, p.chips);
+    p.lastAction = 'All in ' + target;
     if (target > g.currentBet) {
       const inc = target - g.currentBet;
       if (inc >= g.minRaise) g.minRaise = inc;
@@ -319,7 +323,7 @@ function setupHand(room) {
   for (const p of room.players) {
     p.inHand = p.connected && p.chips > 0;
     p.hand = []; p.bet = 0; p.totalBetThisHand = 0;
-    p.folded = false; p.allIn = false; p.acted = false; p.showHand = '';
+    p.folded = false; p.allIn = false; p.acted = false; p.showHand = ''; p.lastAction = '';
   }
   const n = room.players.length;
   room.dealer = nextIdx(room, room.dealer, i => room.players[i].inHand);
@@ -411,7 +415,7 @@ async function dealStreet(room, n, label) {
 async function bettingRound(room, isPreflop) {
   const g = room.game;
   if (!isPreflop) {
-    for (const p of room.players) { p.bet = 0; p.acted = false; }
+    for (const p of room.players) { p.bet = 0; p.acted = false; p.lastAction = ''; }
     g.currentBet = 0;
     g.minRaise = BIG_BLIND;
   }
