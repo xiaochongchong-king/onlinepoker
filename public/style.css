@@ -240,6 +240,40 @@ body {
 #btn-next  { background: linear-gradient(180deg, #2e9e57, #1c6e3b); }
 #btn-rebuy { background: linear-gradient(180deg, #e08a1e, #b5640e); }
 
+/* ==================== 买入记录弹窗 ==================== */
+#btn-buyins {
+  background: #31405f; color: #e8ecf4; border: 1px solid #5a6f9e;
+  padding: 6px 16px; border-radius: 6px; cursor: pointer; font-size: 13px;
+}
+#btn-buyins:hover { background: #41538a; }
+#buyins-overlay {
+  position: fixed; inset: 0; background: rgba(4, 8, 18, 0.72);
+  display: none; align-items: center; justify-content: center; z-index: 55;
+}
+#buyins-panel {
+  background: linear-gradient(180deg, #1d2a4a, #131d36);
+  border: 2px solid #c9a13b; border-radius: 14px;
+  min-width: 420px; max-width: 560px; max-height: 80vh;
+  padding: 20px 26px; box-shadow: 0 16px 60px rgba(0,0,0,0.7);
+  display: flex; flex-direction: column;
+}
+#buyins-panel h2 { font-size: 18px; color: #f5c860; margin-bottom: 12px; letter-spacing: 2px; text-align: center; }
+#buyins-summary { font-size: 13px; color: #ffd97a; margin-bottom: 10px; display: flex; flex-wrap: wrap; gap: 4px 14px; }
+#buyins-list { flex: 1; overflow-y: auto; font-size: 13px; line-height: 1.8; min-height: 60px; }
+#buyins-list .bi {
+  display: flex; justify-content: space-between; gap: 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.06); padding: 4px 2px;
+}
+#buyins-list .bi .t { color: #7d8aa8; font-size: 12px; }
+#buyins-list .bi .amt { color: #ffd97a; font-weight: bold; }
+#buyins-list .bi .lb { color: #9fb0d0; font-size: 12px; }
+#btn-buyins-close {
+  margin-top: 14px; background: #31405f; border: 1px solid #5a6f9e;
+  color: #e8ecf4; border-radius: 8px; padding: 9px 22px;
+  font-size: 14px; font-weight: bold; cursor: pointer;
+}
+#btn-buyins-close:hover { background: #41538a; }
+
 /* ==================== 大厅 ==================== */
 #lobby {
   position: fixed; inset: 0; z-index: 100;
@@ -344,6 +378,8 @@ body {
   #timer-track { width: 60px; }
 
   #panel { min-width: 0; width: 92vw; max-width: 92vw; padding: 18px 20px; max-height: 86vh; overflow-y: auto; }
+  #buyins-panel { min-width: 0; width: 92vw; max-width: 92vw; padding: 16px 18px; max-height: 86vh; }
+  #btn-buyins { padding: 4px 10px; font-size: 12px; }
   #lobby-panel { min-width: 0; width: 92vw; padding: 22px 20px; }
   #lobby-code { font-size: 34px; letter-spacing: 8px; }
 }
