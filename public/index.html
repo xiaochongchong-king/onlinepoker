@@ -57,7 +57,13 @@
 <div id="lobby">
   <div id="lobby-panel">
     <h1>♠ 在线德州扑克</h1>
-    <div id="lobby-entry">
+    <div id="login-entry" style="display:none">
+      <input id="login-user" maxlength="20" placeholder="用户名" autocomplete="username">
+      <input id="login-pass" type="password" maxlength="40" placeholder="口令" autocomplete="current-password">
+      <button id="btn-login">进入牌室</button>
+      <div id="login-msg"></div>
+    </div>
+    <div id="lobby-entry" style="display:none">
       <input id="name-input" maxlength="8" placeholder="你的昵称（最多8字）">
       <button id="btn-create">创建房间</button>
       <div class="lobby-join">
