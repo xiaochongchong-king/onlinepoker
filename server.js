@@ -7,7 +7,14 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { WebSocketServer } = require('ws');
+
+/* ---------------- 登录认证 ----------------
+ * 固定账号口令（仅挡随手打开链接的路人；注意仓库公开时口令可被看到） */
+const AUTH_USER = 'poker';
+const AUTH_PASS = 'Kylinboy@0909';
+const authTokens = new Set();   // 已签发的令牌（内存存储，重启失效需重新登录）
 
 // ====POKER_CORE_BEGIN====
 /* 扑克核心（纯函数，与单机版一致，经全量组合验证） */
@@ -598,6 +605,25 @@ function handleClose(ws) {
 const MIME = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.png': 'image/png', '.ico': 'image/x-icon' };
 const server = http.createServer((req, res) => {
   let urlPath = req.url.split('?')[0];
+  // 登录认证端点
+  if (req.method === 'POST' && urlPath === '/login') {
+    let body = '';
+    req.on('data', c => { body += c; if (body.length > 4096) req.destroy(); });
+    req.on('end', () => {
+      let m = {};
+      try { m = JSON.parse(body); } catch (e) { /* 忽略 */ }
+      if (m.username === AUTH_USER && m.password === AUTH_PASS) {
+        const token = crypto.randomUUID();
+        authTokens.add(token);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ token: token }));
+      } else {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: '用户名或口令错误' }));
+      }
+    });
+    return;
+  }
   if (urlPath === '/') urlPath = '/index.html';
   const file = path.join(__dirname, 'public', path.normalize(urlPath).replace(/^([.][.][\/\\])+/, ''));
   fs.readFile(file, (err, data) => {
@@ -607,7 +633,14 @@ const server = http.createServer((req, res) => {
   });
 });
 
-const wss = new WebSocketServer({ server: server });
+const wss = new WebSocketServer({
+  server: server,
+  // 握手前校验令牌：无有效令牌直接 HTTP 401，WS 连接不会建立
+  verifyClient: (info, cb) => {
+    const q = new URL(info.req.url, 'http://localhost').searchParams;
+    cb(authTokens.has(q.get('token') || ''), 401, 'Unauthorized');
+  }
+});
 wss.on('connection', (ws) => {
   ws.on('message', (msg) => {
     try { handleMessage(ws, msg); } catch (e) { console.error('msg error:', e.message); }
