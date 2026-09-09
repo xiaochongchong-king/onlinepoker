@@ -11,10 +11,20 @@ const crypto = require('crypto');
 const { WebSocketServer } = require('ws');
 
 /* ---------------- 登录认证 ----------------
- * 固定账号口令（仅挡随手打开链接的路人；注意仓库公开时口令可被看到） */
+ * 口令不明文存储：仅存 scrypt(口令, 盐值) 哈希，登录时同样计算后做时间安全比较。
+ * 盐值：KylinSec@2026 */
 const AUTH_USER = 'poker';
-const AUTH_PASS = 'Kylinboy@0909';
+const AUTH_SALT = 'KylinSec@2026';
+const AUTH_HASH = 'fc116072de3e288ce105c36a82b28e936412296a188c747f2d0ab7ef7b453c12355ac95c4856a9a0ef1b7f430db37baa122063f33dc78fa6b41f87ea40b9daa5';
 const authTokens = new Set();   // 已签发的令牌（内存存储，重启失效需重新登录）
+
+/** 校验用户名口令（时间安全比较，防时序侧信道） */
+function checkAuth(username, password) {
+  if (username !== AUTH_USER || typeof password !== 'string') return false;
+  const h = crypto.scryptSync(password, AUTH_SALT, 64).toString('hex');
+  const a = Buffer.from(h, 'hex'), b = Buffer.from(AUTH_HASH, 'hex');
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
 
 // ====POKER_CORE_BEGIN====
 /* 扑克核心（纯函数，与单机版一致，经全量组合验证） */
@@ -612,7 +622,7 @@ const server = http.createServer((req, res) => {
     req.on('end', () => {
       let m = {};
       try { m = JSON.parse(body); } catch (e) { /* 忽略 */ }
-      if (m.username === AUTH_USER && m.password === AUTH_PASS) {
+      if (checkAuth(m.username, m.password)) {
         const token = crypto.randomUUID();
         authTokens.add(token);
         res.writeHead(200, { 'Content-Type': 'application/json' });
