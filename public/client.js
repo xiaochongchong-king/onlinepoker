@@ -6,13 +6,60 @@ const $ = id => document.getElementById(id);
 let ws = null;
 let S = null;                 // 最近一次服务器状态
 let myName = localStorage.getItem('poker-online-name') || '';
+let token = sessionStorage.getItem('poker-online-token') || '';
+
+/* ---------------- 登录 ---------------- */
+function showLogin(msg) {
+  $('lobby').style.display = 'flex';
+  $('lobby-entry').style.display = 'none';
+  $('lobby-room').style.display = 'none';
+  $('login-entry').style.display = 'block';
+  $('login-msg').textContent = msg || '';
+}
+
+async function doLogin() {
+  const username = $('login-user').value.trim();
+  const password = $('login-pass').value;
+  if (!username || !password) { $('login-msg').textContent = '请输入用户名和口令'; return; }
+  $('btn-login').disabled = true;
+  try {
+    const r = await fetch('/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: username, password: password })
+    });
+    if (r.status === 200) {
+      const j = await r.json();
+      token = j.token;
+      sessionStorage.setItem('poker-online-token', token);
+      $('login-msg').textContent = '';
+      connect();
+    } else {
+      $('login-msg').textContent = '用户名或口令错误';
+    }
+  } catch (e) {
+    $('login-msg').textContent = '网络错误，请重试';
+  }
+  $('btn-login').disabled = false;
+}
 
 /* ---------------- 连接 ---------------- */
 function connect() {
   const proto = location.protocol === 'https:' ? 'wss://' : 'ws://';
-  ws = new WebSocket(proto + location.host);
-  ws.onopen = () => { $('lobby-conn').textContent = '已连接服务器'; };
-  ws.onclose = () => {
+  ws = new WebSocket(proto + location.host + '/?token=' + encodeURIComponent(token));
+  let opened = false;
+  ws.onopen = () => {
+    opened = true;
+    $('lobby-conn').textContent = '已连接服务器';
+    $('login-entry').style.display = 'none';
+    $('lobby-entry').style.display = 'block';
+  };
+  ws.onclose = (ev) => {
+    if (ev.code === 4401 || !opened) {  // 握手被拒（令牌失效/未认证）→ 回登录页
+      sessionStorage.removeItem('poker-online-token');
+      token = '';
+      showLogin('登录已失效或口令错误，请重新登录');
+      return;
+    }
     $('lobby-conn').textContent = '连接已断开，请刷新页面重连';
     $('lobby').style.display = 'flex';
     $('lobby-msg').textContent = '与服务器断开连接';
@@ -287,6 +334,9 @@ function addLog(msg, cls) {
   box.scrollTop = box.scrollHeight;
 }
 
-connect();
+$('btn-login').addEventListener('click', doLogin);
+$('login-pass').addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
+$('login-user').addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
+if (token) connect(); else showLogin();
 initLobby();
 initControls();
