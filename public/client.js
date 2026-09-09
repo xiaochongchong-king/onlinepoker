@@ -201,13 +201,23 @@ function renderSeats() {
       if (p.seat === S.sb) blind = '<div class="blind-tag">SB</div>';
       else if (p.seat === S.bb) blind = '<div class="blind-tag bb">BB</div>';
     }
+    // 动作徽章：check/call X/raise X/All in X 优先；无动作时显示本轮下注额（如盲注）
+    let badge;
+    if (p.lastAction) {
+      const kind = p.lastAction === 'check' ? 'check' :
+        p.lastAction.indexOf('All') === 0 ? 'allin' :
+        p.lastAction.indexOf('raise') === 0 ? 'raise' : 'call';
+      badge = '<div class="bet lastact-' + kind + '">' + esc(p.lastAction) + '</div>';
+    } else {
+      badge = p.bet > 0 ? '<div class="bet">下注 ' + p.bet + '</div>' : '<div style="height:4px"></div>';
+    }
     return '<div class="' + cls.join(' ') + '" style="left:' + pos.left + ';top:' + pos.top + '">' +
       '<div class="cards">' + cards + '</div>' +
       '<div class="info">' + dbtn + blind +
         '<div class="name">' + esc(p.name) + '</div>' +
         '<div class="chips">筹码 ' + p.chips + '</div>' +
       '</div>' +
-      (p.bet > 0 ? '<div class="bet">下注 ' + p.bet + '</div>' : '<div style="height:4px"></div>') +
+      badge +
       '<div class="status">' + status + '</div>' +
       '<div class="hand-name">' + esc(p.showHand || '') + '</div>' +
     '</div>';
@@ -261,6 +271,8 @@ function renderControls() {
   const canRaise = canPlay && maxTotal >= minRaiseTotal;
   slider.disabled = !canRaise;
   btnRaise.disabled = !canRaise;
+  const qb = $('quick-bets').children;
+  for (const b of qb) b.disabled = !canRaise;
   if (canRaise) {
     if (slider.max != maxTotal || slider.min != minRaiseTotal) {
       slider.min = minRaiseTotal; slider.max = maxTotal; slider.step = 10;
@@ -320,6 +332,20 @@ function initControls() {
   });
   $('btn-allin').addEventListener('click', () => ws.send(JSON.stringify({ t: 'act', act: { type: 'allin' } })));
   $('raise-slider').addEventListener('input', updateRaiseAmt);
+  // 快捷注码：按底池 1/2、1/3、1/4 或 Allin 一键设定加注额
+  $('quick-bets').addEventListener('click', (e) => {
+    const b = e.target && e.target.closest ? e.target.closest('button') : null;
+    if (!b || b.disabled || !S) return;
+    const slider = $('raise-slider');
+    if (slider.disabled) return;
+    if (b.dataset.frac === 'all') {
+      slider.value = slider.max;
+    } else {
+      const target = Math.round((S.currentBet + S.pot * parseFloat(b.dataset.frac)) / 10) * 10;
+      slider.value = Math.max(parseInt(slider.min, 10), Math.min(parseInt(slider.max, 10), target));
+    }
+    updateRaiseAmt();
+  });
   $('btn-next').addEventListener('click', () => ws.send(JSON.stringify({ t: 'next' })));
   $('btn-rebuy').addEventListener('click', () => ws.send(JSON.stringify({ t: 'rebuy' })));
 }
