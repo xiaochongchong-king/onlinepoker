@@ -615,6 +615,8 @@ function handleClose(ws) {
 const MIME = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.png': 'image/png', '.ico': 'image/x-icon' };
 const server = http.createServer((req, res) => {
   let urlPath = req.url.split('?')[0];
+  // 兼容代理/网关转发的绝对形式 URL（GET http://host/path）——剥掉 scheme+host
+  urlPath = urlPath.replace(/^https?:\/\/[^/]+/, '') || '/';
   // 登录认证端点
   if (req.method === 'POST' && urlPath === '/login') {
     let body = '';
@@ -636,8 +638,12 @@ const server = http.createServer((req, res) => {
   }
   if (urlPath === '/') urlPath = '/index.html';
   const file = path.join(__dirname, 'public', path.normalize(urlPath).replace(/^([.][.][\/\\])+/, ''));
+  if (process.env.DEBUG_HTTP) console.log('[http]', req.method, req.url, '->', file);
   fs.readFile(file, (err, data) => {
-    if (err) { res.writeHead(404); res.end('Not Found'); return; }
+    if (err) {
+      if (process.env.DEBUG_HTTP) console.log('[http] 404', file, err.code);
+      res.writeHead(404); res.end('Not Found'); return;
+    }
     res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream' });
     res.end(data);
   });
