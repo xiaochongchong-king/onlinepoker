@@ -153,11 +153,13 @@ function makeCode() {
   return code;
 }
 
-function createRoom(host, name) {
+function createRoom(host, name, straddle) {
   const code = makeCode();
   const room = {
     code: code, players: [], hostSeat: 0, handNo: 0, hid: 0,
     dealer: -1, sbIdx: -1, bbIdx: -1, game: null, pending: null,
+    straddle: !!straddle,       // 抓位玩法开关（开房时选定）
+    straddleIdx: -1,            // 本局抓位座位（-1=无）
     buyins: [],               // 买入记录：[{seat, name, amount, label, handNo, ts}]
     createdAt: Date.now()
   };
@@ -220,6 +222,7 @@ function viewFor(room, me) {
     code: room.code, hostSeat: room.hostSeat, handNo: room.handNo,
     started: !!g, phase: g ? g.phase : 'lobby',
     dealer: room.dealer, sb: room.sbIdx, bb: room.bbIdx,
+    straddleOn: room.straddle, straddleSeat: room.straddleIdx,
     community: g ? g.community : [],
     pot: g ? totalPot(room) : 0,
     potBreakdown: g ? g.potBreakdown : null,
@@ -355,6 +358,12 @@ function setupHand(room) {
   logTo(room, '—— 第 ' + room.handNo + ' 局 · 庄家：' + room.players[room.dealer].name + ' ——', 'sys');
   postBlind(room, room.players[room.sbIdx], SMALL_BLIND, '小盲');
   postBlind(room, room.players[room.bbIdx], BIG_BLIND, '大盲');
+  // 抓位（Straddle）：3 人及以上时，大盲下家（UTG）强制下 2 倍大盲
+  room.straddleIdx = -1;
+  if (room.straddle && inHand(room).length >= 3) {
+    room.straddleIdx = nextIdx(room, room.bbIdx, i => room.players[i].inHand);
+    postBlind(room, room.players[room.straddleIdx], BIG_BLIND * 2, '抓');
+  }
   g.currentBet = Math.max.apply(null, room.players.map(p => p.bet));
 }
 
@@ -430,7 +439,9 @@ async function bettingRound(room, isPreflop) {
   }
   let idx;
   if (isPreflop) {
-    idx = nextIdx(room, room.bbIdx, i => room.players[i].inHand);
+    // 有抓位时从抓位下家开始行动（抓位者最后行动，等同大盲特权）
+    const anchor = room.straddleIdx >= 0 ? room.straddleIdx : room.bbIdx;
+    idx = nextIdx(room, anchor, i => room.players[i].inHand);
   } else {
     idx = nextIdx(room, room.dealer, i => room.players[i].inHand && !room.players[i].folded && !room.players[i].allIn);
     if (idx === -1) return;
@@ -577,7 +588,7 @@ function handleMessage(ws, msg) {
   if (m.t === 'create') {
     const name = String(m.name || '').replace(/[<>&"']/g, '').trim().slice(0, 8);
     if (!name) return send(ws, { t: 'error', msg: '请先填写昵称' });
-    const r = createRoom(ws, name);
+    const r = createRoom(ws, name, !!m.straddle);
     recordBuyin(r, ws._player, '初始买入');
     send(ws, { t: 'joined', code: r.code, playerId: ws._player.playerId, seat: ws._player.seat, name: name });
     logTo(r, name + ' 创建了房间（房间码 ' + r.code + '）并买入 ' + START_CHIPS + ' 筹码', 'sys');
