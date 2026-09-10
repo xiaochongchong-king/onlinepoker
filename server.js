@@ -170,6 +170,7 @@ function addPlayer(room, ws, name) {
   if (room.players.length >= 6) return null;
   const p = {
     seat: room.players.length, ws: ws, name: name, connected: true,
+    playerId: crypto.randomUUID(),   // 座位凭证：断线重连凭它恢复原座位
     chips: START_CHIPS, inHand: false,
     hand: [], bet: 0, totalBetThisHand: 0,
     folded: false, allIn: false, acted: false, showHand: '', lastAction: ''
@@ -578,6 +579,7 @@ function handleMessage(ws, msg) {
     if (!name) return send(ws, { t: 'error', msg: '请先填写昵称' });
     const r = createRoom(ws, name);
     recordBuyin(r, ws._player, '初始买入');
+    send(ws, { t: 'joined', code: r.code, playerId: ws._player.playerId, seat: ws._player.seat, name: name });
     logTo(r, name + ' 创建了房间（房间码 ' + r.code + '）并买入 ' + START_CHIPS + ' 筹码', 'sys');
     broadcastState(r);
     return;
@@ -590,7 +592,24 @@ function handleMessage(ws, msg) {
     if (!name) return send(ws, { t: 'error', msg: '请先填写昵称' });
     addPlayer(r, ws, name);
     recordBuyin(r, ws._player, '初始买入');
+    send(ws, { t: 'joined', code: r.code, playerId: ws._player.playerId, seat: ws._player.seat, name: name });
     logTo(r, name + ' 加入房间并买入 ' + START_CHIPS + ' 筹码', 'sys');
+    broadcastState(r);
+    return;
+  }
+  // 断线重连：凭座位凭证恢复原座位
+  if (m.t === 'rejoin') {
+    const r = rooms.get(String(m.code || '').toUpperCase().trim());
+    if (!r) return send(ws, { t: 'error', msg: '房间已不存在' });
+    const p = r.players.find(q => q.playerId === m.playerId);
+    if (!p) return send(ws, { t: 'error', msg: '座位不存在，请重新加入' });
+    if (p.ws && p.ws !== ws && p.ws.readyState === 1) { try { p.ws.close(); } catch (e) { /* 忽略 */ } }
+    p.ws = ws;
+    ws._player = p;
+    ws._room = r;
+    p.connected = true;
+    send(ws, { t: 'joined', code: r.code, playerId: p.playerId, seat: p.seat, name: p.name });
+    logTo(r, p.name + ' 重新连接', 'sys');
     broadcastState(r);
     return;
   }
@@ -692,6 +711,11 @@ wss.on('connection', (ws) => {
   ws.on('close', () => handleClose(ws));
   ws.on('error', () => {});
 });
+
+/* 心跳保活：防代理/网关掐断闲置 WS（浏览器自动应答 pong） */
+setInterval(() => {
+  for (const ws of wss.clients) { try { ws.ping(); } catch (e) { /* 忽略 */ } }
+}, 30000);
 
 /* 房间清扫：全员离线 10 分钟删除 */
 setInterval(() => {
