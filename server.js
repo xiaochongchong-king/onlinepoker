@@ -657,6 +657,14 @@ function handleMessage(ws, msg) {
   if (!room || !p) return;
 
   if (m.t === 'start' || m.t === 'next') return tryStartHand(room, p);
+  if (m.t === 'straddle') {
+    // 抓位开关：仅房主可设置，下一局生效（金额 = 大盲×2）
+    if (ws._player.seat !== room.hostSeat) return send(ws, { t: 'error', msg: '只有房主可以设置抓位' });
+    room.straddle = !!m.on;
+    logTo(room, '房主' + (room.straddle ? '开启' : '关闭') + '了抓位（' + (BIG_BLIND * 2) + '），下一局生效', 'sys');
+    broadcastState(room);
+    return;
+  }
   if (m.t === 'rebuy') {
     if (p.chips > 0) return send(ws, { t: 'error', msg: '还有筹码，无需买入' });
     p.chips = START_CHIPS;
