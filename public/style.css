@@ -144,12 +144,38 @@ body {
 .seat .blind-tag.bb { background: #8a3737; }
 .seat .blind-tag.str { background: #b5640e; }
 
-/* 抓位选项（开房表单） */
-.straddle-opt {
-  display: flex; align-items: center; justify-content: center; gap: 6px;
-  font-size: 13px; color: #cdd8ee; margin-top: 4px; cursor: pointer;
+/* 抓位设置（顶栏按钮 + 弹窗） */
+#btn-straddle {
+  background: #31405f; color: #e8ecf4; border: 1px solid #5a6f9e;
+  padding: 6px 16px; border-radius: 6px; cursor: pointer; font-size: 13px;
 }
-.straddle-opt input { accent-color: #e08a1e; width: 15px; height: 15px; }
+#btn-straddle:hover { background: #41538a; }
+#straddle-overlay {
+  position: fixed; inset: 0; background: rgba(4, 8, 18, 0.72);
+  display: none; align-items: center; justify-content: center; z-index: 55;
+}
+#straddle-panel {
+  background: linear-gradient(180deg, #1d2a4a, #131d36);
+  border: 2px solid #c9a13b; border-radius: 14px;
+  min-width: 360px; max-width: 480px; padding: 20px 26px;
+  box-shadow: 0 16px 60px rgba(0,0,0,0.7); text-align: center;
+}
+#straddle-panel h2 { font-size: 18px; color: #f5c860; margin-bottom: 12px; letter-spacing: 2px; }
+#straddle-state { font-size: 14px; color: #ffd97a; margin-bottom: 14px; }
+.str-btns { display: flex; gap: 12px; justify-content: center; margin-bottom: 12px; }
+.str-btns button {
+  border: none; border-radius: 8px; padding: 10px 24px;
+  font-size: 15px; font-weight: bold; cursor: pointer; color: #fff;
+}
+#btn-str-on { background: linear-gradient(180deg, #e08a1e, #b5640e); }
+#btn-str-off { background: #31405f; border: 1px solid #5a6f9e !important; }
+.str-btns button:hover { filter: brightness(1.15); }
+#straddle-tip { font-size: 12px; color: #9fb0d0; line-height: 1.7; margin-bottom: 12px; }
+#btn-straddle-close {
+  background: #31405f; border: 1px solid #5a6f9e; color: #e8ecf4;
+  border-radius: 8px; padding: 8px 22px; font-size: 13px; font-weight: bold; cursor: pointer;
+}
+#btn-straddle-close:hover { background: #41538a; }
 
 /* 房间列表（登录后展示可加入的房间） */
 #room-list-wrap { margin: 4px 0 10px; }
@@ -426,6 +452,8 @@ body {
   #panel { min-width: 0; width: 92vw; max-width: 92vw; padding: 18px 20px; max-height: 86vh; overflow-y: auto; }
   #buyins-panel { min-width: 0; width: 92vw; max-width: 92vw; padding: 16px 18px; max-height: 86vh; }
   #btn-buyins { padding: 4px 10px; font-size: 12px; }
+  #btn-straddle { padding: 4px 10px; font-size: 12px; }
+  #straddle-panel { min-width: 0; width: 90vw; padding: 16px 18px; }
   #lobby-panel { min-width: 0; width: 92vw; padding: 22px 20px; }
   #lobby-code { font-size: 34px; letter-spacing: 8px; }
 }
