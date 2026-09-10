@@ -117,12 +117,14 @@ body {
 .seat.folded .cards .card { transform: rotate(-10deg) translateY(6px); }
 .seat.offline .info { border-color: rgba(255,255,255,0.08); opacity: 0.55; }
 .seat .bet {
-  display: inline-block; margin-top: 4px;
+  display: inline-block;
   background: linear-gradient(180deg, #f7cf5f, #d9a62e);
   color: #3a2a05; font-size: 12px; font-weight: bold;
   border-radius: 12px; padding: 2px 10px;
   box-shadow: 0 1px 4px rgba(0,0,0,0.5);
 }
+/* 徽章槽位：恒定高度，有/无徽章时座位不跳动 */
+.seat .betbox { height: 22px; margin-top: 4px; display: flex; align-items: center; justify-content: center; }
 .seat .status {
   margin-top: 3px; font-size: 12px; color: #ffd25a; min-height: 15px;
   text-shadow: 0 1px 2px rgba(0,0,0,0.8);
@@ -212,6 +214,7 @@ body {
 #controls button {
   border: none; border-radius: 8px; padding: 12px 22px;
   font-size: 15px; font-weight: bold; cursor: pointer; color: #fff;
+  min-width: 108px; text-align: center;   /* 标签变化时按钮宽度恒定，整排不移位 */
   transition: transform 0.1s, filter 0.15s;
 }
 #controls button:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.15); }
@@ -243,8 +246,8 @@ body {
 #quick-bets button:disabled { opacity: 0.38; cursor: not-allowed; }
 
 /* ==================== 行动倒计时 ==================== */
-#timer-box { display: none; flex-direction: column; align-items: center; gap: 4px; min-width: 88px; }
-#timer-box.on { display: flex; }
+#timer-box { display: flex; visibility: hidden; flex-direction: column; align-items: center; gap: 4px; min-width: 88px; }
+#timer-box.on { visibility: visible; }
 #timer-num { font-size: 22px; font-weight: bold; color: #8ff0a4; line-height: 1; }
 #timer-track { width: 82px; height: 6px; background: rgba(255,255,255,0.15); border-radius: 3px; overflow: hidden; }
 #timer-bar { height: 100%; width: 100%; background: #8ff0a4; border-radius: 3px; }
