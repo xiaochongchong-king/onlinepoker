@@ -142,6 +142,14 @@ body {
   border: 1px solid rgba(255,255,255,0.4);
 }
 .seat .blind-tag.bb { background: #8a3737; }
+.seat .blind-tag.str { background: #b5640e; }
+
+/* 抓位选项（开房表单） */
+.straddle-opt {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  font-size: 13px; color: #cdd8ee; margin-top: 4px; cursor: pointer;
+}
+.straddle-opt input { accent-color: #e08a1e; width: 15px; height: 15px; }
 
 /* ==================== 操作区 ==================== */
 #controls {
