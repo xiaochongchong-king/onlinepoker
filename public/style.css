@@ -145,13 +145,16 @@ body {
 
 /* ==================== 操作区 ==================== */
 #controls {
-  display: flex; align-items: center; justify-content: center; gap: 14px;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+  gap: 10px 16px;
   padding: 10px 16px;
   background: linear-gradient(180deg, #141d36, #0e1526);
   border-top: 1px solid rgba(255, 215, 130, 0.2);
   min-height: 86px;
 }
-#hint { min-width: 170px; font-size: 13px; color: #8ff0a4; font-weight: bold; }
+/* 提示语 + 倒计时独立成行，下方按钮行居中对称 */
+#hint-row { flex: 0 0 100%; display: flex; align-items: center; justify-content: center; gap: 18px; min-height: 24px; }
+#hint { font-size: 13px; color: #8ff0a4; font-weight: bold; }
 #hint .dim { color: #7d8aa8; font-weight: normal; }
 #controls button {
   border: none; border-radius: 8px; padding: 12px 22px;
@@ -164,7 +167,8 @@ body {
 #btn-call  { background: linear-gradient(180deg, #2f6fd0, #1e4d9c); }
 #btn-raise { background: linear-gradient(180deg, #2e9e57, #1c6e3b); }
 #btn-allin { background: linear-gradient(180deg, #e08a1e, #b5640e); }
-#raise-box { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; }
+#raise-box { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+#raise-box .row2 { display: flex; align-items: center; gap: 10px; }
 #raise-slider { width: 190px; accent-color: #2e9e57; }
 #raise-amt { font-size: 13px; color: #ffd97a; min-width: 86px; }
 
@@ -174,11 +178,11 @@ body {
 .bet.lastact-raise { background: linear-gradient(180deg, #e08a1e, #b5640e); color: #fff; }
 .bet.lastact-allin { background: linear-gradient(180deg, #c0392b, #96281c); color: #fff; }
 
-/* 快捷注码按钮（1/2、1/3、1/4 底池、Allin） */
-#quick-bets { display: flex; gap: 5px; justify-content: center; flex: 0 0 100%; }
+/* 快捷注码按钮（与主操作按钮同级的视觉大小） */
+#quick-bets { display: flex; gap: 8px; justify-content: center; }
 #quick-bets button {
   background: #31405f; color: #cdd8ee; border: 1px solid #5a6f9e;
-  border-radius: 5px; padding: 3px 9px; font-size: 11px; cursor: pointer;
+  border-radius: 7px; padding: 8px 16px; font-size: 13px; font-weight: bold; cursor: pointer;
 }
 #quick-bets button:hover:not(:disabled) { background: #41538a; }
 #quick-bets button:disabled { opacity: 0.38; cursor: not-allowed; }
@@ -274,6 +278,28 @@ body {
 }
 #btn-buyins-close:hover { background: #41538a; }
 
+/* ==================== 等待开局面板（牌桌中央） ==================== */
+#wait-panel {
+  position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%);
+  z-index: 5; display: none; flex-direction: column; align-items: center;
+  background: rgba(8, 14, 28, 0.88); border: 2px solid #c9a13b; border-radius: 16px;
+  padding: 22px 38px; text-align: center;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.55);
+}
+#wait-code {
+  font-size: 42px; font-weight: bold; color: #ffd97a; letter-spacing: 12px;
+  margin: 6px 0 8px; text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
+#wait-count { font-size: 14px; color: #cdd8ee; margin-bottom: 14px; }
+#btn-start2 {
+  border: none; border-radius: 8px; padding: 12px 34px;
+  font-size: 16px; font-weight: bold; cursor: pointer; color: #fff;
+  background: linear-gradient(180deg, #2e9e57, #1c6e3b);
+}
+#btn-start2:hover:not(:disabled) { filter: brightness(1.15); }
+#btn-start2:disabled { opacity: 0.38; cursor: not-allowed; }
+#wait-tip { font-size: 13px; color: #9fb0d0; margin-top: 10px; }
+
 /* ==================== 大厅 ==================== */
 #lobby {
   position: fixed; inset: 0; z-index: 100;
@@ -305,21 +331,7 @@ body {
 .lobby-join input { flex: 1; margin-bottom: 0; text-transform: uppercase; letter-spacing: 4px; }
 .lobby-join button { flex: 1; margin-bottom: 0; background: linear-gradient(180deg, #2f6fd0, #1e4d9c); }
 #lobby-msg, #login-msg { font-size: 13px; color: #e79a9a; min-height: 18px; margin-top: 4px; }
-#lobby-room { display: none; }
 .room-code-tip { font-size: 12px; color: #9fb0d0; }
-#lobby-code {
-  font-size: 44px; font-weight: bold; color: #ffd97a; letter-spacing: 12px;
-  margin: 6px 0 16px; text-shadow: 0 2px 8px rgba(0,0,0,0.5);
-}
-#lobby-players { margin-bottom: 18px; }
-#lobby-players .lp {
-  display: flex; justify-content: space-between;
-  background: rgba(255,255,255,0.05); border-radius: 8px;
-  padding: 8px 14px; margin: 6px 0; font-size: 14px;
-}
-#lobby-players .lp .host-tag { color: #f5c860; font-size: 12px; }
-#lobby-players .lp .off { color: #e79a9a; font-size: 12px; }
-#lobby-wait { font-size: 13px; color: #9fb0d0; margin-top: 4px; display: none; }
 #lobby-conn { position: absolute; bottom: 18px; left: 0; right: 0; font-size: 12px; color: #7d8aa8; }
 
 /* ==================== 移动端适配（≤768px） ==================== */
@@ -367,15 +379,19 @@ body {
   .seat .dbtn { width: 18px; height: 18px; font-size: 10px; top: -7px; right: -7px; border-width: 1px; }
   .seat .blind-tag { font-size: 8px; padding: 1px 3px; top: -7px; left: -7px; }
 
-  #controls { flex-wrap: wrap; gap: 8px; padding: 8px 10px; min-height: 0; }
-  #hint { min-width: 0; flex: 1 1 100%; font-size: 12px; text-align: center; }
+  #controls { gap: 8px; padding: 8px 10px; min-height: 0; }
+  #hint-row { min-height: 20px; gap: 12px; }
+  #hint { font-size: 12px; }
   #controls button { padding: 10px 16px; font-size: 14px; }
   #raise-slider { width: 110px; }
-  #quick-bets button { padding: 2px 7px; font-size: 10px; }
+  #quick-bets { gap: 6px; }
+  #quick-bets button { padding: 6px 12px; font-size: 12px; }
   #raise-amt { min-width: 0; font-size: 12px; }
   #timer-box { min-width: 64px; }
   #timer-num { font-size: 18px; }
   #timer-track { width: 60px; }
+  #wait-panel { padding: 16px 24px; width: 86vw; }
+  #wait-code { font-size: 32px; letter-spacing: 8px; }
 
   #panel { min-width: 0; width: 92vw; max-width: 92vw; padding: 18px 20px; max-height: 86vh; overflow-y: auto; }
   #buyins-panel { min-width: 0; width: 92vw; max-width: 92vw; padding: 16px 18px; max-height: 86vh; }
