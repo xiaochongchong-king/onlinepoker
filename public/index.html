@@ -96,7 +96,11 @@
     <div id="lobby-entry" style="display:none">
       <input id="name-input" maxlength="8" placeholder="你的昵称（最多8字）">
       <button id="btn-create">创建房间</button>
-      <label class="straddle-opt"><input type="checkbox" id="straddle-check"> 抓位 40（Straddle，3 人及以上生效）</label>
+      <label class="straddle-opt"><input type="checkbox" id="straddle-check"> 抓位 40（Straddle · 3人+）</label>
+      <div id="room-list-wrap">
+        <div class="rl-title">已存在的房间（点击直接进入）</div>
+        <div id="room-list"></div>
+      </div>
       <div class="lobby-join">
         <input id="code-input" maxlength="4" placeholder="房间码">
         <button id="btn-join">加入房间</button>
