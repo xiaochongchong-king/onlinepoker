@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <title>德州扑克 · 在线房间</title>
-<link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="/style.css?v=15">
 </head>
 <body>
 
@@ -77,7 +77,7 @@
   </div>
 </div>
 
-<div id="straddle-overlay">
+<div id="straddle-overlay" style="display:none; position:fixed; inset:0; z-index:55; background:rgba(4,8,18,0.72)">
   <div id="straddle-panel">
     <h2>抓位设置</h2>
     <div id="straddle-state"></div>
@@ -90,7 +90,7 @@
   </div>
 </div>
 
-<div id="buyins-overlay">
+<div id="buyins-overlay" style="display:none; position:fixed; inset:0; z-index:50; background:rgba(4,8,18,0.72)">
   <div id="buyins-panel">
     <h2>买入记录</h2>
     <div id="buyins-summary"></div>
@@ -125,6 +125,6 @@
   </div>
 </div>
 
-<script src="/client.js"></script>
+<script src="/client.js?v=15"></script>
 </body>
 </html>
