@@ -116,7 +116,7 @@ function initLobby() {
     if (name === null) return;
     myName = name;
     localStorage.setItem('poker-online-name', myName);
-    ws.send(JSON.stringify({ t: 'create', name: myName }));
+    ws.send(JSON.stringify({ t: 'create', name: myName, straddle: $('straddle-check').checked }));
     $('lobby-msg').textContent = '';
   });
   $('btn-join').addEventListener('click', () => {
@@ -220,6 +220,7 @@ function render() {
   $('lobby').style.display = 'none';
   $('room-code').textContent = S.code;
   $('hand-no').textContent = S.handNo;
+  $('blinds-text').textContent = '盲注 10 / 20' + (S.straddleOn ? ' / 40（抓）' : '');
   renderSeats();
   renderCommunity();
   renderPot();
@@ -254,6 +255,7 @@ function renderSeats() {
     if (S.phase === 'preflop') {
       if (p.seat === S.sb) blind = '<div class="blind-tag">SB</div>';
       else if (p.seat === S.bb) blind = '<div class="blind-tag bb">BB</div>';
+      else if (p.seat === S.straddleSeat) blind = '<div class="blind-tag str">抓</div>';
     }
     // 动作徽章：check/call X/raise X/All in X 优先；无动作时显示本轮下注额（如盲注）
     let badge;
