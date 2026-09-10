@@ -138,7 +138,7 @@ function initLobby() {
     if (name === null) return;
     myName = name;
     localStorage.setItem('poker-online-name', myName);
-    ws.send(JSON.stringify({ t: 'create', name: myName, straddle: $('straddle-check').checked }));
+    ws.send(JSON.stringify({ t: 'create', name: myName }));
     $('lobby-msg').textContent = '';
   });
   $('btn-join').addEventListener('click', () => {
@@ -453,6 +453,21 @@ function initControls() {
     localStorage.removeItem('poker-online-session');
     session = null;
     location.reload();
+  });
+  // 抓位设置弹窗（房主开启/关闭，下一局生效）
+  $('btn-straddle').addEventListener('click', () => {
+    $('straddle-state').textContent = (S && S.straddleOn) ? '当前状态：已开启（盲注 10 / 20 / 40）' : '当前状态：未开启（盲注 10 / 20）';
+    $('straddle-overlay').style.display = 'flex';
+  });
+  $('btn-straddle-close').addEventListener('click', () => { $('straddle-overlay').style.display = 'none'; });
+  $('straddle-overlay').addEventListener('click', (e) => { if (e.target === $('straddle-overlay')) $('straddle-overlay').style.display = 'none'; });
+  $('btn-str-on').addEventListener('click', () => {
+    ws.send(JSON.stringify({ t: 'straddle', on: true }));
+    $('straddle-overlay').style.display = 'none';
+  });
+  $('btn-str-off').addEventListener('click', () => {
+    ws.send(JSON.stringify({ t: 'straddle', on: false }));
+    $('straddle-overlay').style.display = 'none';
   });
 }
 
