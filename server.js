@@ -15,7 +15,7 @@ const { WebSocketServer } = require('ws');
  * 盐值：KylinSec@2026 */
 const AUTH_USER = 'poker';
 const AUTH_SALT = 'KylinSec@2026';
-const AUTH_HASH = 'fc116072de3e288ce105c36a82b28e936412296a188c747f2d0ab7ef7b453c12355ac95c4856a9a0ef1b7f430db37baa122063f33dc78fa6b41f87ea40b9daa5';
+const AUTH_HASH = '5e265755436b1dd53489b1d8b572cb173d041766653bd40e791df18dc87769b57f19c6ecb6eb6696f9aec5441c4656a1abb4933e6dd3c1cbbc8922805b6351f4';
 const authTokens = new Set();   // 已签发的令牌（内存存储，重启失效需重新登录）
 
 /** 校验用户名口令（时间安全比较，防时序侧信道） */
