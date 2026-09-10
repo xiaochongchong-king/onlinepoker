@@ -372,6 +372,8 @@ function renderControls() {
   btnRaise.disabled = !canRaise;
   const qb = $('quick-bets').children;
   for (const b of qb) b.disabled = !canRaise;
+  // 开池时下注按钮叫「下注」，有注可加时才叫「加注」
+  $('btn-raise').textContent = S.currentBet > 0 ? '加注' : '下注';
   if (canRaise) {
     if (slider.max != maxTotal || slider.min != minRaiseTotal) {
       slider.min = minRaiseTotal; slider.max = maxTotal; slider.step = 10;
@@ -385,7 +387,8 @@ function renderControls() {
 }
 
 function updateRaiseAmt() {
-  $('raise-amt').textContent = '加注到 ' + $('raise-slider').value;
+  const label = (S && S.currentBet > 0) ? '加注到 ' : '下注到 ';
+  $('raise-amt').textContent = label + $('raise-slider').value;
 }
 
 function renderResult() {
