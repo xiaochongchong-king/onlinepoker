@@ -585,6 +585,22 @@ function handleMessage(ws, msg) {
   try { m = JSON.parse(msg); } catch (e) { return; }
   const room = ws._room, p = ws._player;
 
+  // 房间列表：登录后展示可加入的房间
+  if (m.t === 'rooms') {
+    const list = [];
+    for (const r of rooms.values()) {
+      list.push({
+        code: r.code,
+        count: r.players.length,
+        online: r.players.filter(p => p.connected).length,
+        started: !!r.game,
+        straddle: !!r.straddle,
+        names: r.players.map(p => p.name)
+      });
+    }
+    send(ws, { t: 'rooms', rooms: list });
+    return;
+  }
   if (m.t === 'create') {
     const name = String(m.name || '').replace(/[<>&"']/g, '').trim().slice(0, 8);
     if (!name) return send(ws, { t: 'error', msg: '请先填写昵称' });
