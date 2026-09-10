@@ -294,6 +294,7 @@ function renderSeats() {
       else if (p.seat === S.straddleSeat) blind = '<div class="blind-tag str">抓</div>';
     }
     // 动作徽章：check/call X/raise X/All in X 优先；无动作时显示本轮下注额（如盲注）
+    // 外层 betbox 槽位恒定高度，有/无徽章座位不跳动
     let badge;
     if (p.lastAction) {
       const kind = p.lastAction === 'check' ? 'check' :
@@ -301,7 +302,7 @@ function renderSeats() {
         p.lastAction.indexOf('raise') === 0 ? 'raise' : 'call';
       badge = '<div class="bet lastact-' + kind + '">' + esc(p.lastAction) + '</div>';
     } else {
-      badge = p.bet > 0 ? '<div class="bet">下注 ' + p.bet + '</div>' : '<div style="height:4px"></div>';
+      badge = p.bet > 0 ? '<div class="bet">下注 ' + p.bet + '</div>' : '';
     }
     return '<div class="' + cls.join(' ') + '" style="left:' + pos.left + ';top:' + pos.top + '">' +
       '<div class="cards">' + cards + '</div>' +
@@ -309,7 +310,7 @@ function renderSeats() {
         '<div class="name">' + esc(p.name) + '</div>' +
         '<div class="chips">筹码 ' + p.chips + '</div>' +
       '</div>' +
-      badge +
+      '<div class="betbox">' + badge + '</div>' +
       '<div class="status">' + status + '</div>' +
       '<div class="hand-name">' + esc(p.showHand || '') + '</div>' +
     '</div>';
