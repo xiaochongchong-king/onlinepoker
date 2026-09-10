@@ -180,11 +180,11 @@ body {
 .bet.lastact-raise { background: linear-gradient(180deg, #e08a1e, #b5640e); color: #fff; }
 .bet.lastact-allin { background: linear-gradient(180deg, #c0392b, #96281c); color: #fff; }
 
-/* 快捷注码按钮（与主操作按钮同级的视觉大小） */
-#quick-bets { display: flex; gap: 8px; justify-content: center; }
+/* 快捷注码按钮（底池分数/倍数/Allin，与主按钮同级大小） */
+#quick-bets { display: flex; gap: 7px; justify-content: center; flex-wrap: wrap; }
 #quick-bets button {
   background: #31405f; color: #cdd8ee; border: 1px solid #5a6f9e;
-  border-radius: 7px; padding: 8px 16px; font-size: 13px; font-weight: bold; cursor: pointer;
+  border-radius: 7px; padding: 8px 13px; font-size: 13px; font-weight: bold; cursor: pointer;
 }
 #quick-bets button:hover:not(:disabled) { background: #41538a; }
 #quick-bets button:disabled { opacity: 0.38; cursor: not-allowed; }
