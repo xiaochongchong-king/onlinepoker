@@ -12,7 +12,6 @@ let token = sessionStorage.getItem('poker-online-token') || '';
 function showLogin(msg) {
   $('lobby').style.display = 'flex';
   $('lobby-entry').style.display = 'none';
-  $('lobby-room').style.display = 'none';
   $('login-entry').style.display = 'block';
   $('login-msg').textContent = msg || '';
 }
@@ -98,28 +97,22 @@ function initLobby() {
     ws.send(JSON.stringify({ t: 'join', code: code, name: myName }));
     $('lobby-msg').textContent = '';
   });
-  $('btn-start').addEventListener('click', () => ws.send(JSON.stringify({ t: 'start' })));
+  $('btn-start2').addEventListener('click', () => ws.send(JSON.stringify({ t: 'start' })));
 }
 
-function renderLobby() {
-  $('lobby').style.display = 'flex';
-  $('lobby-entry').style.display = 'none';
-  $('lobby-room').style.display = 'block';
-  $('lobby-code').textContent = S.code;
-  const bc = {};
-  (S.buyins || []).forEach(b => { bc[b.seat] = (bc[b.seat] || 0) + 1; });
-  $('lobby-players').innerHTML = S.players.map(p =>
-    '<div class="lp"><span>' + esc(p.name) +
-    (p.seat === S.hostSeat ? ' <span class="host-tag">[房主]</span>' : '') +
-    (p.seat === S.you ? ' <span class="host-tag">（你）</span>' : '') + '</span>' +
-    '<span>' + (p.connected ? '筹码 ' + p.chips + ' · 买入 ' + (bc[p.seat] || 0) + ' 次' : '<span class="off">离线</span>') + '</span></div>'
-  ).join('');
+/* 等待开局面板：建房/加入后直接入座牌桌，房主在中央开始 */
+function renderWait() {
+  const w = $('wait-panel');
+  if (S.started) { w.style.display = 'none'; return; }
+  w.style.display = 'flex';
+  $('wait-code').textContent = S.code;
+  const online = S.players.filter(p => p.connected).length;
+  $('wait-count').textContent = '已入座 ' + online + ' 人（2~6 人可开局）';
   const isHost = S.you === S.hostSeat;
-  $('btn-start').style.display = isHost ? '' : 'none';
-  $('lobby-wait').style.display = isHost ? 'none' : 'block';
-  $('btn-start').disabled = S.players.filter(p => p.connected).length < 2;
-  $('btn-start').textContent = S.players.filter(p => p.connected).length < 2 ?
-    '开始游戏（至少 2 人）' : '开始游戏（' + S.players.filter(p => p.connected).length + ' 人）';
+  $('btn-start2').style.display = isHost ? '' : 'none';
+  $('wait-tip').textContent = isHost ? '' : '等待房主开始…';
+  $('btn-start2').disabled = online < 2;
+  $('btn-start2').textContent = online < 2 ? '开始游戏（至少 2 人）' : '开始游戏（' + online + ' 人）';
 }
 
 function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
@@ -191,7 +184,7 @@ function rankChar(r) {
 /* ---------------- 渲染 ---------------- */
 function render() {
   if (!S) return;
-  if (!S.started) { renderLobby(); return; }
+  // 已在房间内（无论是否开局）都直接进牌桌
   $('lobby').style.display = 'none';
   $('room-code').textContent = S.code;
   $('hand-no').textContent = S.handNo;
@@ -201,6 +194,7 @@ function render() {
   renderHint();
   renderControls();
   renderResult();
+  renderWait();
 }
 
 function renderSeats() {
@@ -211,7 +205,7 @@ function renderSeats() {
     const cards = p.cards.map((c, k) => cardHTML(c, !faceUp,
       faceUp ? 'f-' + (c ? c.suit + '-' + c.rank : 'x') + '-' + p.seat + '-' + k : 'b-p' + p.seat + '-' + k)).join('');
     let status = '';
-    if (!p.inHand && S.phase !== 'lobby') status = p.chips <= 0 ? '等待买入' : '观战中';
+    if (!p.inHand) status = S.phase === 'lobby' ? '已入座' : (p.chips <= 0 ? '等待买入' : '观战中');
     if (p.folded) status = '已弃牌';
     else if (S.winners.indexOf(p.seat) !== -1) status = '★ 获胜 ★';
     else if (p.allIn && p.inHand) status = '全下';
@@ -271,7 +265,13 @@ function renderPot() {
 
 function renderHint() {
   const me = S.players[S.you];
-  if (!me || !me.inHand) { $('hint').innerHTML = '<span class="dim">你在观战…</span>'; return; }
+  if (!me) { $('hint').innerHTML = ''; return; }
+  if (!me.inHand) {
+    $('hint').innerHTML = S.phase === 'lobby'
+      ? '<span class="dim">已入座，等待开始…</span>'
+      : '<span class="dim">你在观战…</span>';
+    return;
+  }
   if (me.folded) { $('hint').innerHTML = '<span class="dim">你已弃牌，等待本局结束…</span>'; return; }
   $('hint').textContent = S.acting === S.you ? '轮到你行动' : '';
 }
