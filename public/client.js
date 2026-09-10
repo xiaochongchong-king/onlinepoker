@@ -399,11 +399,13 @@ function renderResult() {
       '<div class="win-line"><b>' + esc(w.name) + '</b> 赢得 <b class="gold">' + w.amount + '</b>' +
       (w.hand ? '<span class="hn">' + esc(w.hand) + '</span>' : '') + '</div>').join('');
     const broke = me && me.chips <= 0;
-    $('panel-note').textContent = broke ? '你的筹码已用完，请点击「重新买入」继续' :
-      (me && S.you !== S.hostSeat ? '等待房主开始下一局…' : '');
+    // 可继续条件：至少 2 名在线且有筹码的玩家（有人进房/重连后状态广播会自动刷新出按钮）
+    const canNext = S.players.filter(p => p.connected && p.chips > 0).length >= 2;
+    $('panel-note').textContent = broke ? '你的筹码已用完，请点击「重新买入」继续' : '';
     $('btn-rebuy').style.display = broke ? '' : 'none';
-    $('btn-next').style.display = (S.you === S.hostSeat) ? '' : 'none';
+    $('btn-next').style.display = canNext ? '' : 'none';   // 下一局已对全员放开，人够就显示
     $('btn-next').disabled = broke;
+    $('result-wait').style.display = canNext ? 'none' : 'block';
     $('overlay').style.display = 'flex';
   } else {
     $('overlay').style.display = 'none';
