@@ -708,7 +708,7 @@ function handleClose(ws) {
 }
 
 /* ---------------- HTTP 静态页 + WS 挂载 ---------------- */
-const MIME = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.png': 'image/png', '.ico': 'image/x-icon' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.png': 'image/png', '.ico': 'image/x-icon', '.svg': 'image/svg+xml' };
 const server = http.createServer((req, res) => {
   let urlPath = req.url.split('?')[0];
   // 兼容代理/网关转发的绝对形式 URL（GET http://host/path）——剥掉 scheme+host
