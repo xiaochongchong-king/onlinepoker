@@ -57,6 +57,7 @@ function connect() {
     if (session) {
       ws.send(JSON.stringify({ t: 'rejoin', code: session.code, playerId: session.playerId }));
     }
+    requestRooms();
   };
   ws.onclose = (ev) => {
     if (ev.code === 4401 || !opened) {  // 握手被拒（令牌失效/未认证）→ 回登录页
@@ -78,6 +79,7 @@ function connect() {
       session = { code: m.code, playerId: m.playerId };
       localStorage.setItem('poker-online-session', JSON.stringify(session));
     }
+    else if (m.t === 'rooms') renderRoomList(m.rooms);
     else if (m.t === 'state') { S = m; render(); }
     else if (m.t === 'log') addLog(m.msg, m.cls);
     else if (m.t === 'error') {
@@ -109,6 +111,26 @@ function requireName() {
   return name;
 }
 
+/* ---------------- 房间列表 ---------------- */
+function requestRooms() {
+  if (ws && ws.readyState === 1) ws.send(JSON.stringify({ t: 'rooms' }));
+}
+
+function renderRoomList(list) {
+  const box = $('room-list');
+  if (!box) return;
+  if (!list || !list.length) {
+    box.innerHTML = '<div class="rl-empty">暂无可加入的房间，创建一个吧</div>';
+    return;
+  }
+  box.innerHTML = list.map(r =>
+    '<div class="rl-row" data-code="' + esc(r.code) + '">' +
+      '<span class="rl-code">' + esc(r.code) + '</span>' +
+      '<span class="rl-info">' + r.online + '/' + r.count + ' 人' + (r.started ? ' · 进行中' : ' · 等待中') + (r.straddle ? ' · 抓' : '') + '</span>' +
+      '<span class="rl-names">' + esc(r.names.join('、')) + '</span>' +
+    '</div>').join('');
+}
+
 function initLobby() {
   $('name-input').value = myName;
   $('btn-create').addEventListener('click', () => {
@@ -130,6 +152,20 @@ function initLobby() {
     $('lobby-msg').textContent = '';
   });
   $('btn-start2').addEventListener('click', () => ws.send(JSON.stringify({ t: 'start' })));
+  // 房间列表：点击进入 + 大厅停留期间每 5 秒刷新
+  $('room-list').addEventListener('click', (e) => {
+    const row = e.target && e.target.closest ? e.target.closest('.rl-row') : null;
+    if (!row) return;
+    const name = requireName();
+    if (name === null) return;
+    myName = name;
+    localStorage.setItem('poker-online-name', myName);
+    ws.send(JSON.stringify({ t: 'join', code: row.dataset.code, name: myName }));
+    $('lobby-msg').textContent = '';
+  });
+  setInterval(() => {
+    if ($('lobby').style.display !== 'none' && $('lobby-entry').style.display === 'block') requestRooms();
+  }, 5000);
 }
 
 /* 等待开局面板：建房/加入后直接入座牌桌，房主在中央开始 */
