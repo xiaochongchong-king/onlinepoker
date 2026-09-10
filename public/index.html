@@ -11,6 +11,7 @@
 <header id="topbar">
   <h1>♠ 德州扑克 · 在线房间</h1>
   <div class="hand-no">房间 <b id="room-code">—</b> · 第 <span id="hand-no">0</span> 局 · <span id="blinds-text">盲注 10 / 20</span></div>
+  <button id="btn-straddle">抓位</button>
   <button id="btn-buyins">买入记录</button>
   <button id="btn-leave">离开房间</button>
 </header>
@@ -75,6 +76,19 @@
   </div>
 </div>
 
+<div id="straddle-overlay">
+  <div id="straddle-panel">
+    <h2>抓位设置</h2>
+    <div id="straddle-state"></div>
+    <div class="str-btns">
+      <button id="btn-str-on">开启（40）</button>
+      <button id="btn-str-off">关闭</button>
+    </div>
+    <div id="straddle-tip">抓位 = 大盲 × 2（40）· 仅房主可设置 · 下一局生效 · 3 人及以上才会抓</div>
+    <button id="btn-straddle-close">关闭</button>
+  </div>
+</div>
+
 <div id="buyins-overlay">
   <div id="buyins-panel">
     <h2>买入记录</h2>
@@ -96,7 +110,6 @@
     <div id="lobby-entry" style="display:none">
       <input id="name-input" maxlength="8" placeholder="你的昵称（最多8字）">
       <button id="btn-create">创建房间</button>
-      <label class="straddle-opt"><input type="checkbox" id="straddle-check"> 抓位 40（Straddle · 3人+）</label>
       <div id="room-list-wrap">
         <div class="rl-title">已存在的房间（点击直接进入）</div>
         <div id="room-list"></div>
