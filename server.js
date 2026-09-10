@@ -587,9 +587,23 @@ function handleMessage(ws, msg) {
   if (m.t === 'join') {
     const r = rooms.get(String(m.code || '').toUpperCase().trim());
     if (!r) return send(ws, { t: 'error', msg: '房间不存在，请检查房间码' });
-    if (r.players.length >= 6) return send(ws, { t: 'error', msg: '房间已满（6 人）' });
     const name = String(m.name || '').replace(/[<>&"']/g, '').trim().slice(0, 8);
     if (!name) return send(ws, { t: 'error', msg: '请先填写昵称' });
+    // 同名检查：在线玩家撞名 → 拒；离线座位同名 → 收回原座
+    const dup = r.players.find(q => q.name === name);
+    if (dup) {
+      if (dup.connected) return send(ws, { t: 'error', msg: '昵称已被占用，请换一个' });
+      if (dup.ws && dup.ws !== ws && dup.ws.readyState === 1) { try { dup.ws.close(); } catch (e) { /* 忽略 */ } }
+      dup.ws = ws;
+      ws._player = dup;
+      ws._room = r;
+      dup.connected = true;
+      send(ws, { t: 'joined', code: r.code, playerId: dup.playerId, seat: dup.seat, name: dup.name });
+      logTo(r, name + ' 回到了座位', 'sys');
+      broadcastState(r);
+      return;
+    }
+    if (r.players.length >= 6) return send(ws, { t: 'error', msg: '房间已满（6 人）' });
     addPlayer(r, ws, name);
     recordBuyin(r, ws._player, '初始买入');
     send(ws, { t: 'joined', code: r.code, playerId: ws._player.playerId, seat: ws._player.seat, name: name });
