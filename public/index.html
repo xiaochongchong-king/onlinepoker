@@ -21,6 +21,13 @@
       <div id="pot-area"></div>
       <div id="community"></div>
       <div id="seats"></div>
+      <div id="wait-panel">
+        <div class="room-code-tip">房间码（发给好友加入）</div>
+        <div id="wait-code"></div>
+        <div id="wait-count"></div>
+        <button id="btn-start2">开始游戏</button>
+        <div id="wait-tip">等待房主开始…</div>
+      </div>
     </div>
   </div>
   <aside id="log-panel">
@@ -30,10 +37,12 @@
 </div>
 
 <footer id="controls">
-  <div id="hint"></div>
-  <div id="timer-box">
-    <div id="timer-num">60</div>
-    <div id="timer-track"><div id="timer-bar"></div></div>
+  <div id="hint-row">
+    <div id="hint"></div>
+    <div id="timer-box">
+      <div id="timer-num">60</div>
+      <div id="timer-track"><div id="timer-bar"></div></div>
+    </div>
   </div>
   <button id="btn-fold" disabled>弃牌</button>
   <button id="btn-call" disabled>过牌</button>
@@ -44,9 +53,11 @@
       <button data-frac="0.25" disabled>1/4</button>
       <button data-frac="all" disabled>Allin</button>
     </div>
-    <input type="range" id="raise-slider" disabled>
-    <span id="raise-amt"></span>
-    <button id="btn-raise" disabled>加注</button>
+    <div class="row2">
+      <input type="range" id="raise-slider" disabled>
+      <span id="raise-amt"></span>
+      <button id="btn-raise" disabled>加注</button>
+    </div>
   </div>
   <button id="btn-allin" disabled>全下</button>
 </footer>
@@ -87,13 +98,6 @@
         <button id="btn-join">加入房间</button>
       </div>
       <div id="lobby-msg"></div>
-    </div>
-    <div id="lobby-room">
-      <div class="room-code-tip">房间码（发给好友加入）</div>
-      <div id="lobby-code"></div>
-      <div id="lobby-players"></div>
-      <button id="btn-start">开始游戏</button>
-      <div id="lobby-wait">等待房主开始…</div>
     </div>
     <div id="lobby-conn">连接中…</div>
   </div>
