@@ -574,7 +574,8 @@ function handleMessage(ws, msg) {
   const room = ws._room, p = ws._player;
 
   if (m.t === 'create') {
-    const name = String(m.name || '').replace(/[<>&"']/g, '').trim().slice(0, 8) || '玩家' + Math.floor(Math.random() * 100);
+    const name = String(m.name || '').replace(/[<>&"']/g, '').trim().slice(0, 8);
+    if (!name) return send(ws, { t: 'error', msg: '请先填写昵称' });
     const r = createRoom(ws, name);
     recordBuyin(r, ws._player, '初始买入');
     logTo(r, name + ' 创建了房间（房间码 ' + r.code + '）并买入 ' + START_CHIPS + ' 筹码', 'sys');
@@ -585,7 +586,8 @@ function handleMessage(ws, msg) {
     const r = rooms.get(String(m.code || '').toUpperCase().trim());
     if (!r) return send(ws, { t: 'error', msg: '房间不存在，请检查房间码' });
     if (r.players.length >= 6) return send(ws, { t: 'error', msg: '房间已满（6 人）' });
-    const name = String(m.name || '').replace(/[<>&"']/g, '').trim().slice(0, 8) || '玩家' + Math.floor(Math.random() * 100);
+    const name = String(m.name || '').replace(/[<>&"']/g, '').trim().slice(0, 8);
+    if (!name) return send(ws, { t: 'error', msg: '请先填写昵称' });
     addPlayer(r, ws, name);
     recordBuyin(r, ws._player, '初始买入');
     logTo(r, name + ' 加入房间并买入 ' + START_CHIPS + ' 筹码', 'sys');
