@@ -569,8 +569,8 @@ async function showdown(room) {
 }
 
 /* ---------------- 开始/下一局/买入 ---------------- */
-function tryStartHand(room, byPlayer) {
-  if (byPlayer.seat !== room.hostSeat) return send(byPlayer.ws, { t: 'error', msg: '只有房主可以开始' });
+function tryStartHand(room, byPlayer, allowNonHost) {
+  if (!allowNonHost && byPlayer.seat !== room.hostSeat) return send(byPlayer.ws, { t: 'error', msg: '只有房主可以开始' });
   if (room.game && room.game.phase !== 'showdown') return;
   const ready = room.players.filter(p => p.connected && p.chips > 0);
   if (ready.length < 2) return send(byPlayer.ws, { t: 'error', msg: '至少需要 2 名有筹码的在线玩家' });
@@ -656,7 +656,8 @@ function handleMessage(ws, msg) {
   }
   if (!room || !p) return;
 
-  if (m.t === 'start' || m.t === 'next') return tryStartHand(room, p);
+  if (m.t === 'start') return tryStartHand(room, p);
+  if (m.t === 'next') return tryStartHand(room, p, true);   // 下一局：任何在座玩家都可发起
   if (m.t === 'straddle') {
     // 抓位开关：仅房主可设置，下一局生效（金额 = 大盲×2）
     if (ws._player.seat !== room.hostSeat) return send(ws, { t: 'error', msg: '只有房主可以设置抓位' });
