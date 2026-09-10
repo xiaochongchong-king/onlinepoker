@@ -77,14 +77,25 @@ function connect() {
 
 /* ---------------- 大厅 ---------------- */
 function myNameInput() {
-  const v = $('name-input').value.replace(/[<>&"']/g, '').trim().slice(0, 8);
-  return v || '玩家' + Math.floor(Math.random() * 100);
+  return $('name-input').value.replace(/[<>&"']/g, '').trim().slice(0, 8);
+}
+
+function requireName() {
+  const name = myNameInput();
+  if (!name) {
+    $('lobby-msg').textContent = '请先填写昵称再进入房间';
+    $('name-input').focus();
+    return null;
+  }
+  return name;
 }
 
 function initLobby() {
   $('name-input').value = myName;
   $('btn-create').addEventListener('click', () => {
-    myName = myNameInput();
+    const name = requireName();
+    if (name === null) return;
+    myName = name;
     localStorage.setItem('poker-online-name', myName);
     ws.send(JSON.stringify({ t: 'create', name: myName }));
     $('lobby-msg').textContent = '';
@@ -92,7 +103,9 @@ function initLobby() {
   $('btn-join').addEventListener('click', () => {
     const code = $('code-input').value.toUpperCase().trim();
     if (code.length !== 4) { $('lobby-msg').textContent = '请输入 4 位房间码'; return; }
-    myName = myNameInput();
+    const name = requireName();
+    if (name === null) return;
+    myName = name;
     localStorage.setItem('poker-online-name', myName);
     ws.send(JSON.stringify({ t: 'join', code: code, name: myName }));
     $('lobby-msg').textContent = '';
