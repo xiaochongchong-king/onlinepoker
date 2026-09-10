@@ -299,14 +299,15 @@ function doAction(room, p, act) {
     p.lastAction = p.allIn ? 'All in ' + amt : 'call ' + amt;
     logTo(room, p.name + ' 跟注 ' + amt + (p.allIn ? '（全下）' : ''), 'act');
   } else if (act.type === 'raise') {
+    const wasOpen = g.currentBet === 0;   // 开池=下注(bet)，抬别人的=加注(raise)
     let target = Math.min(Math.round(act.target || 0), p.bet + p.chips);
     target = Math.max(target, Math.min(g.currentBet + g.minRaise, p.bet + p.chips));
     const inc = target - g.currentBet;
     commitChips(p, target - p.bet);
     if (inc >= g.minRaise) g.minRaise = inc;
     g.currentBet = target;
-    p.lastAction = p.allIn ? 'All in ' + target : 'raise ' + target;
-    logTo(room, p.name + ' 加注到 ' + target + (p.allIn ? '（全下）' : ''), 'act');
+    p.lastAction = p.allIn ? 'All in ' + target : (wasOpen ? 'bet ' + target : 'raise ' + target);
+    logTo(room, p.name + (wasOpen ? ' 下注 ' : ' 加注到 ') + target + (p.allIn ? '（全下）' : ''), 'act');
   } else if (act.type === 'allin') {
     const target = p.bet + p.chips;
     commitChips(p, p.chips);
@@ -675,6 +676,7 @@ function handleMessage(ws, msg) {
     return;
   }
   if (m.t === 'act') {
+    if (process.env.DEBUG_ACT) console.error('[act] from seat ' + p.seat + ' type=' + (m.act && m.act.type) + ' target=' + (m.act && m.act.target) + ' pending=' + (room.pending ? room.pending.seat : 'null'));
     if (!room.pending || room.pending.seat !== p.seat) return;
     const act = m.act || {};
     if (['fold', 'check', 'call', 'raise', 'allin'].indexOf(act.type) === -1) return;
