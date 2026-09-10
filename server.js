@@ -476,6 +476,18 @@ async function earlyWin(room) {
   const g = room.game;
   const winner = activeInHand(room)[0];
   const total = totalPot(room);
+  if (!winner) {
+    // 全员掉线导致无人可赢的极端情况：本局作废，退还各人在局下注
+    for (const p of room.players) {
+      if (p.inHand) { p.chips += p.totalBetThisHand; p.totalBetThisHand = 0; p.bet = 0; }
+    }
+    g.phase = 'showdown';
+    g.winners = [];
+    logTo(room, '所有玩家均已掉线，本局作废，下注退还', 'sys');
+    g.result = { title: '本局作废（全员掉线）', lines: [] };
+    broadcastState(room);
+    return;
+  }
   winner.chips += total;
   g.winners = [winner.seat];
   g.phase = 'showdown';
@@ -605,10 +617,9 @@ function handleClose(ws) {
   if (!room || !p) return;
   p.connected = false;
   logTo(room, p.name + ' 离开了房间', 'sys');
-  // 轮到掉线玩家：立即按默认动作处理
+  // 轮到掉线玩家：立即弃牌（掉线即弃牌，与超时不同）
   if (room.pending && room.pending.seat === p.seat) {
-    const toCall = room.game.currentBet - p.bet;
-    room.pending.resolve(toCall <= 0 ? { type: 'check' } : { type: 'fold' });
+    room.pending.resolve({ type: 'fold' });
   }
   // 局中断线且仍在局中：直接弃牌（全下除外）
   if (room.game && p.inHand && !p.folded && !p.allIn && room.game.phase !== 'showdown') {
