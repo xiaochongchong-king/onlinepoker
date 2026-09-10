@@ -7,6 +7,8 @@ let ws = null;
 let S = null;                 // 最近一次服务器状态
 let myName = localStorage.getItem('poker-online-name') || '';
 let token = sessionStorage.getItem('poker-online-token') || '';
+let session = null;           // 座位凭证 {code, playerId}：断线重连恢复原座
+try { session = JSON.parse(localStorage.getItem('poker-online-session') || 'null'); } catch (e) { session = null; }
 
 /* ---------------- 登录 ---------------- */
 function showLogin(msg) {
@@ -51,6 +53,10 @@ function connect() {
     $('lobby-conn').textContent = '已连接服务器';
     $('login-entry').style.display = 'none';
     $('lobby-entry').style.display = 'block';
+    // 有座位凭证：自动恢复原座位
+    if (session) {
+      ws.send(JSON.stringify({ t: 'rejoin', code: session.code, playerId: session.playerId }));
+    }
   };
   ws.onclose = (ev) => {
     if (ev.code === 4401 || !opened) {  // 握手被拒（令牌失效/未认证）→ 回登录页
@@ -59,17 +65,30 @@ function connect() {
       showLogin('登录已失效或口令错误，请重新登录');
       return;
     }
-    $('lobby-conn').textContent = '连接已断开，请刷新页面重连';
-    $('lobby').style.display = 'flex';
-    $('lobby-msg').textContent = '与服务器断开连接';
+    // 断线自动重连（有座位凭证时恢复原座）
+    $('lobby-conn').textContent = '连接中断，正在重连…';
+    if (S) $('hint').innerHTML = '<span class="dim">连接中断，正在重连…</span>';
+    clearTimeout(window._rcTimer);
+    window._rcTimer = setTimeout(connect, 2500);
   };
   ws.onmessage = (ev) => {
     let m;
     try { m = JSON.parse(ev.data); } catch (e) { return; }
-    if (m.t === 'state') { S = m; render(); }
+    if (m.t === 'joined') {
+      session = { code: m.code, playerId: m.playerId };
+      localStorage.setItem('poker-online-session', JSON.stringify(session));
+    }
+    else if (m.t === 'state') { S = m; render(); }
     else if (m.t === 'log') addLog(m.msg, m.cls);
     else if (m.t === 'error') {
-      if ($('lobby').style.display !== 'none') $('lobby-msg').textContent = m.msg;
+      if (m.msg === '房间已不存在' || m.msg === '座位不存在，请重新加入') {
+        localStorage.removeItem('poker-online-session');
+        session = null;
+        $('lobby').style.display = 'flex';
+        $('lobby-entry').style.display = 'block';
+        $('lobby-msg').textContent = m.msg;
+      }
+      else if ($('lobby').style.display !== 'none') $('lobby-msg').textContent = m.msg;
       else addLog('提示：' + m.msg, 'sys');
     }
   };
@@ -392,6 +411,11 @@ function initControls() {
   $('btn-buyins').addEventListener('click', () => { renderBuyins(); $('buyins-overlay').style.display = 'flex'; });
   $('btn-buyins-close').addEventListener('click', () => { $('buyins-overlay').style.display = 'none'; });
   $('buyins-overlay').addEventListener('click', (e) => { if (e.target === $('buyins-overlay')) $('buyins-overlay').style.display = 'none'; });
+  $('btn-leave').addEventListener('click', () => {
+    localStorage.removeItem('poker-online-session');
+    session = null;
+    location.reload();
+  });
 }
 
 /* ---------------- 日志 ---------------- */
