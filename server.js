@@ -174,6 +174,7 @@ function addPlayer(room, ws, name) {
     seat: room.players.length, ws: ws, name: name, connected: true,
     playerId: crypto.randomUUID(),   // 座位凭证：断线重连凭它恢复原座位
     chips: START_CHIPS, inHand: false,
+    ready: false,                    // 进房默认观战，点「准备」才参与发牌
     hand: [], bet: 0, totalBetThisHand: 0,
     folded: false, allIn: false, acted: false, showHand: '', lastAction: ''
   };
@@ -242,7 +243,7 @@ function viewFor(room, me) {
       return {
         seat: p.seat, name: p.name, chips: p.chips, bet: p.bet,
         inHand: p.inHand, folded: p.folded, allIn: p.allIn,
-        connected: p.connected, lastAction: p.lastAction || '',
+        connected: p.connected, lastAction: p.lastAction || '', ready: p.ready,
         cards: p.hand.length ? (showFace ? p.hand : [null, null]) : [],
         showHand: p.showHand || ''
       };
@@ -334,7 +335,7 @@ function setupHand(room) {
   };
   room.handNo++;
   for (const p of room.players) {
-    p.inHand = p.connected && p.chips > 0;
+    p.inHand = p.connected && p.chips > 0 && p.ready;   // 未准备=观战，不参与发牌
     p.hand = []; p.bet = 0; p.totalBetThisHand = 0;
     p.folded = false; p.allIn = false; p.acted = false; p.showHand = ''; p.lastAction = '';
   }
@@ -573,8 +574,8 @@ async function showdown(room) {
 function tryStartHand(room, byPlayer, allowNonHost) {
   if (!allowNonHost && byPlayer.seat !== room.hostSeat) return send(byPlayer.ws, { t: 'error', msg: '只有房主可以开始' });
   if (room.game && room.game.phase !== 'showdown') return;
-  const ready = room.players.filter(p => p.connected && p.chips > 0);
-  if (ready.length < 2) return send(byPlayer.ws, { t: 'error', msg: '至少需要 2 名有筹码的在线玩家' });
+  const ready = room.players.filter(p => p.connected && p.chips > 0 && p.ready);
+  if (ready.length < 2) return send(byPlayer.ws, { t: 'error', msg: '至少需要 2 名已准备且有筹码的在线玩家' });
   room.game = null;         // 清掉上局结果
   for (const p of room.players) p.showHand = '';
   playHand(room);
@@ -676,6 +677,14 @@ function handleMessage(ws, msg) {
     p.chips += amt;
     recordBuyin(room, p, '买入', amt);
     logTo(room, p.name + ' 买入 ' + amt + ' 筹码', 'sys');
+    broadcastState(room);
+    return;
+  }
+  if (m.t === 'ready') {
+    // 准备/取消准备：进房默认观战，准备后才参与发牌（下一局生效）
+    if (m.on && p.chips <= 0) return send(ws, { t: 'error', msg: '筹码不足，请先买入再准备' });
+    p.ready = !!m.on;
+    logTo(room, p.name + (p.ready ? ' 已准备，等待入局' : ' 取消准备，转为观战'), 'sys');
     broadcastState(room);
     return;
   }
