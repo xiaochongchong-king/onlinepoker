@@ -221,12 +221,12 @@ const SEAT_POS = [
   { left: '50%', top: '9%' }, { left: '87%', top: '24%' }, { left: '85%', top: '68%' }
 ];
 const SEAT_POS_MOBILE = [
-  { left: '50%', top: '86%' }, { left: '19%', top: '68%' }, { left: '19%', top: '25%' },
-  { left: '50%', top: '11%' }, { left: '81%', top: '25%' }, { left: '81%', top: '68%' }
+  { left: '50%', top: '86%' }, { left: '13%', top: '70%' }, { left: '19%', top: '25%' },
+  { left: '50%', top: '11%' }, { left: '81%', top: '25%' }, { left: '87%', top: '70%' }
 ];
-/* 7~9 人：椭圆均分算法（座位 0 固定底部，其余逆时针均匀环绕） */
+/* 7~9 人：椭圆均分算法（座位 0 固定底部，其余逆时针均匀环绕；移动端横向半径加大，边座让出公共牌区） */
 function spreadPos(n, i, mobile) {
-  const rx = mobile ? 38 : 42, ry = mobile ? 37 : 40;
+  const rx = mobile ? 41 : 42, ry = mobile ? 37 : 40;
   const ang = (90 + i * (360 / n)) * Math.PI / 180;
   return { left: (50 + rx * Math.cos(ang)).toFixed(1) + '%', top: (50 + ry * Math.sin(ang)).toFixed(1) + '%' };
 }
@@ -280,6 +280,8 @@ function renderSeats() {
   const positions = (window.innerWidth <= 768 ? SEAT_POS_MOBILE : SEAT_POS);
   const isMobile = window.innerWidth <= 768;
   const pCount = S.players.length;
+  // 7 人以上：座位容器加 crowded 类（移动端卡牌缩小一档，避免互挤）
+  $('seats').classList.toggle('crowded', pCount > 6);
   $('seats').innerHTML = S.players.map(p => {
     // ≤6 人用固定布局（零回归），7~9 人椭圆均分
     const pos = pCount > 6 ? spreadPos(pCount, p.seat, isMobile) : positions[p.seat];
