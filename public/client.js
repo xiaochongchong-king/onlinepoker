@@ -391,6 +391,11 @@ function updateRaiseAmt() {
   $('raise-amt').textContent = label + $('raise-slider').value;
 }
 
+function canContinue() {
+  // 可继续条件：至少 2 名在线且有筹码的玩家
+  return !!(S && S.players.filter(p => p.connected && p.chips > 0).length >= 2);
+}
+
 function renderResult() {
   const me = S.players[S.you];
   if (S.result) {
@@ -400,15 +405,30 @@ function renderResult() {
       (w.hand ? '<span class="hn">' + esc(w.hand) + '</span>' : '') + '</div>').join('');
     const broke = me && me.chips <= 0;
     // 可继续条件：至少 2 名在线且有筹码的玩家（有人进房/重连后状态广播会自动刷新出按钮）
-    const canNext = S.players.filter(p => p.connected && p.chips > 0).length >= 2;
+    const canNext = canContinue();
     $('panel-note').textContent = broke ? '你的筹码已用完，请点击「重新买入」继续' : '';
     $('btn-rebuy').style.display = broke ? '' : 'none';
     $('btn-next').style.display = canNext ? '' : 'none';   // 下一局已对全员放开，人够就显示
     $('btn-next').disabled = broke;
     $('result-wait').style.display = canNext ? 'none' : 'block';
     $('overlay').style.display = 'flex';
+    // 只剩 1 人干等时：遮罩别挡死全屏——4 秒后自动收起（可点离开房间等）；
+    // 有人进房/重连后状态广播重新走到这里，canNext=true 时结算页带「下一局」自动回归
+    if (canNext) {
+      clearTimeout(window._soloT); window._soloT = null;
+    } else if (window._soloDismissedFor !== S.handNo && !window._soloT) {
+      window._soloT = setTimeout(() => {
+        window._soloT = null;
+        if (S && S.result && !canContinue()) {
+          window._soloDismissedFor = S.handNo;
+          $('overlay').style.display = 'none';
+        }
+      }, 4000);
+    }
   } else {
     $('overlay').style.display = 'none';
+    window._soloDismissedFor = -1;
+    clearTimeout(window._soloT); window._soloT = null;
   }
 }
 
@@ -474,6 +494,14 @@ function initControls() {
   $('btn-str-off').addEventListener('click', () => {
     ws.send(JSON.stringify({ t: 'straddle', on: false }));
     $('straddle-overlay').style.display = 'none';
+  });
+  // 等待状态（只剩 1 人）时点遮罩空白处立即收起结算页
+  $('overlay').addEventListener('click', (e) => {
+    if (e.target === $('overlay') && S && S.result && !canContinue()) {
+      window._soloDismissedFor = S.handNo;
+      clearTimeout(window._soloT); window._soloT = null;
+      $('overlay').style.display = 'none';
+    }
   });
 }
 
