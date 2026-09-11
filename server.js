@@ -169,7 +169,7 @@ function createRoom(host, name, straddle) {
 }
 
 function addPlayer(room, ws, name) {
-  if (room.players.length >= 6) return null;
+  if (room.players.length >= 9) return null;   // 房间上限 9 人
   const p = {
     seat: room.players.length, ws: ws, name: name, connected: true,
     playerId: crypto.randomUUID(),   // 座位凭证：断线重连凭它恢复原座位
@@ -631,7 +631,7 @@ function handleMessage(ws, msg) {
       broadcastState(r);
       return;
     }
-    if (r.players.length >= 6) return send(ws, { t: 'error', msg: '房间已满（6 人）' });
+    if (r.players.length >= 9) return send(ws, { t: 'error', msg: '房间已满（9 人）' });
     addPlayer(r, ws, name);
     recordBuyin(r, ws._player, '初始买入');
     send(ws, { t: 'joined', code: r.code, playerId: ws._player.playerId, seat: ws._player.seat, name: name });
