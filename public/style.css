@@ -185,7 +185,7 @@ body {
 
 /* 移动端快捷注码下拉（桌面隐藏） */
 #quick-select {
-  display: none;
+  display: block;
   background: #31405f; color: #cdd8ee; border: 1px solid #5a6f9e;
   border-radius: 7px; padding: 8px 12px; font-size: 13px; font-weight: bold;
 }
@@ -261,11 +261,10 @@ body {
 #btn-raise { background: linear-gradient(180deg, #2e9e57, #1c6e3b); }
 #btn-allin { background: linear-gradient(180deg, #e08a1e, #b5640e); }
 #raise-box { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-/* 三等分网格：左右槽等宽，滑杆稳居正中，快捷注码与滑杆中轴对齐 */
-#raise-box .row2 { display: grid; grid-template-columns: 100px 220px 100px; align-items: center; gap: 8px; }
-#raise-slider { width: 220px; accent-color: #2e9e57; }
-#raise-amt { font-size: 13px; color: #ffd97a; text-align: right; }
-#raise-box .row2 #btn-raise { justify-self: start; }
+/* 注码行：金额 | 滑杆(弹性) | 下注按钮 | 快捷注码下拉 */
+#raise-box .row2 { display: flex; align-items: center; gap: 8px; }
+#raise-slider { flex: 1; min-width: 140px; accent-color: #2e9e57; }
+#raise-amt { font-size: 13px; color: #ffd97a; text-align: right; min-width: 84px; }
 
 /* 动作徽章配色（座位下方的 check/call/raise/All in 标签） */
 .bet.lastact-check { background: linear-gradient(180deg, #5a6f9e, #3d4c6e); color: #dfe6f5; }
@@ -500,9 +499,10 @@ body {
   #hint { font-size: 12px; }
   #controls button { padding: 10px 16px; font-size: 14px; }
   #raise-slider { width: 120px; }
-  #raise-box .row2 { grid-template-columns: 74px 120px 74px; gap: 6px; }
-  #quick-bets { gap: 6px; display: none; }          /* 移动端：按钮组换下拉框 */
-  #quick-select { display: block; }
+  #raise-box .row2 { gap: 6px; }
+  #raise-slider { min-width: 90px; }
+  #raise-amt { min-width: 0; font-size: 12px; }
+  #quick-select { display: block; padding: 8px 8px; font-size: 12px; max-width: 108px; }
   /* 7 人以上牌桌拥挤：座位牌缩小一档，避免压到公共牌/邻座 */
   #seats.crowded .seat .cards { min-height: 54px; gap: 3px; margin-bottom: 3px; }
   #seats.crowded .seat .cards .card { width: 32px; height: 45px; }
