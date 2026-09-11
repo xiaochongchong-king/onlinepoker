@@ -60,6 +60,7 @@ function connect() {
     requestRooms();
   };
   ws.onclose = (ev) => {
+    if (window._suppressReconnect) { window._suppressReconnect = false; return; }   // 房间已解散，不重连
     if (ev.code === 4401 || !opened) {  // 握手被拒（令牌失效/未认证）→ 回登录页
       sessionStorage.removeItem('poker-online-token');
       token = '';
@@ -80,6 +81,17 @@ function connect() {
       localStorage.setItem('poker-online-session', JSON.stringify(session));
     }
     else if (m.t === 'rooms') renderRoomList(m.rooms);
+    else if (m.t === 'room_closed') {
+      // 房主解散房间：弹回大厅，压住自动重连
+      window._suppressReconnect = true;
+      localStorage.removeItem('poker-online-session');
+      session = null;
+      S = null;
+      $('lobby').style.display = 'flex';
+      $('lobby-entry').style.display = 'block';
+      $('lobby-msg').textContent = m.msg || '房间已被房主解散';
+      requestRooms();
+    }
     else if (m.t === 'state') { S = m; render(); }
     else if (m.t === 'log') addLog(m.msg, m.cls);
     else if (m.t === 'error') {
@@ -562,9 +574,10 @@ function initControls() {
   $('btn-buyins-close').addEventListener('click', () => { $('buyins-overlay').style.display = 'none'; });
   $('buyins-overlay').addEventListener('click', (e) => { if (e.target === $('buyins-overlay')) $('buyins-overlay').style.display = 'none'; });
   $('btn-leave').addEventListener('click', () => {
+    try { ws.send(JSON.stringify({ t: 'leave' })); } catch (e) { /* 忽略 */ }   // 通知服务器（创建者离开=解散房间）
     localStorage.removeItem('poker-online-session');
     session = null;
-    location.reload();
+    setTimeout(() => location.reload(), 150);
   });
   // 抓位设置弹窗（房主开启/关闭，下一局生效）
   $('btn-straddle').addEventListener('click', () => {
