@@ -153,6 +153,42 @@ body {
   padding: 6px 16px; border-radius: 6px; cursor: pointer; font-size: 13px;
 }
 #btn-straddle:hover { background: #41538a; }
+#btn-rebuy2 {
+  background: linear-gradient(180deg, #e08a1e, #b5640e); color: #fff; border: none;
+  padding: 6px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold;
+}
+#btn-rebuy2:hover { filter: brightness(1.15); }
+
+/* 买入弹窗 */
+#rebuy-overlay { display: none; align-items: center; justify-content: center; }
+#rebuy-panel {
+  background: linear-gradient(180deg, #1d2a4a, #131d36);
+  border: 2px solid #c9a13b; border-radius: 14px;
+  min-width: 340px; max-width: 460px; padding: 20px 26px;
+  box-shadow: 0 16px 60px rgba(0,0,0,0.7); text-align: center;
+}
+#rebuy-panel h2 { font-size: 18px; color: #f5c860; margin-bottom: 14px; letter-spacing: 2px; }
+.rebuy-row { margin-bottom: 10px; }
+#rebuy-amount {
+  width: 200px; padding: 10px 14px; font-size: 18px; font-weight: bold; text-align: center;
+  background: #0e1526; color: #ffd97a; border: 1px solid #5a6f9e; border-radius: 8px;
+}
+#rebuy-tip { font-size: 12px; color: #9fb0d0; line-height: 1.7; margin-bottom: 14px; }
+.rebuy-btns { display: flex; gap: 12px; justify-content: center; }
+.rebuy-btns button {
+  border: none; border-radius: 8px; padding: 10px 24px;
+  font-size: 15px; font-weight: bold; cursor: pointer; color: #fff;
+}
+#btn-rebuy-ok { background: linear-gradient(180deg, #e08a1e, #b5640e); }
+#btn-rebuy-cancel { background: #31405f; border: 1px solid #5a6f9e !important; }
+.rebuy-btns button:hover { filter: brightness(1.15); }
+
+/* 移动端快捷注码下拉（桌面隐藏） */
+#quick-select {
+  display: none;
+  background: #31405f; color: #cdd8ee; border: 1px solid #5a6f9e;
+  border-radius: 7px; padding: 8px 12px; font-size: 13px; font-weight: bold;
+}
 #straddle-overlay {
   position: fixed; inset: 0; background: rgba(4, 8, 18, 0.72);
   display: none; align-items: center; justify-content: center; z-index: 55;
@@ -445,7 +481,20 @@ body {
   #controls button { padding: 10px 16px; font-size: 14px; }
   #raise-slider { width: 120px; }
   #raise-box .row2 { grid-template-columns: 74px 120px 74px; gap: 6px; }
-  #quick-bets { gap: 6px; }
+  #quick-bets { gap: 6px; display: none; }          /* 移动端：按钮组换下拉框 */
+  #quick-select { display: block; }
+  /* 移动端日志：默认收起为一条（点标题展开），不再遮挡按钮 */
+  #log-panel { height: 34px; overflow: hidden; transition: height 0.2s; cursor: pointer; position: relative; }
+  #log-panel.open { height: 120px; overflow: visible; cursor: default; }
+  #log-panel h3 {
+    display: block; font-size: 11px; padding: 9px 12px; border: none;
+    color: #9fb0d0; letter-spacing: 1px;
+  }
+  #log-panel h3::after { content: ' ▸'; color: #c9a13b; }
+  #log-panel.open h3::after { content: ' ▾'; }
+  #log-panel.open h3 { border-bottom: 1px solid rgba(255,255,255,0.08); }
+  #log-panel #log { display: none; }
+  #log-panel.open #log { display: block; height: 82px; }
   #quick-bets button { padding: 6px 12px; font-size: 12px; }
   #raise-amt { min-width: 0; font-size: 12px; }
   #timer-box { min-width: 64px; }
