@@ -224,6 +224,12 @@ const SEAT_POS_MOBILE = [
   { left: '50%', top: '86%' }, { left: '19%', top: '68%' }, { left: '19%', top: '25%' },
   { left: '50%', top: '11%' }, { left: '81%', top: '25%' }, { left: '81%', top: '68%' }
 ];
+/* 7~9 人：椭圆均分算法（座位 0 固定底部，其余逆时针均匀环绕） */
+function spreadPos(n, i, mobile) {
+  const rx = mobile ? 38 : 42, ry = mobile ? 37 : 40;
+  const ang = (90 + i * (360 / n)) * Math.PI / 180;
+  return { left: (50 + rx * Math.cos(ang)).toFixed(1) + '%', top: (50 + ry * Math.sin(ang)).toFixed(1) + '%' };
+}
 
 /* ---------------- 发牌动画去重（同单机版思路） ---------------- */
 let renderedHandNo = -1;
@@ -272,8 +278,11 @@ function render() {
 
 function renderSeats() {
   const positions = (window.innerWidth <= 768 ? SEAT_POS_MOBILE : SEAT_POS);
+  const isMobile = window.innerWidth <= 768;
+  const pCount = S.players.length;
   $('seats').innerHTML = S.players.map(p => {
-    const pos = positions[p.seat];
+    // ≤6 人用固定布局（零回归），7~9 人椭圆均分
+    const pos = pCount > 6 ? spreadPos(pCount, p.seat, isMobile) : positions[p.seat];
     const faceUp = p.cards.length > 0 && p.cards[0] !== null;
     const cards = p.cards.map((c, k) => cardHTML(c, !faceUp,
       faceUp ? 'f-' + (c ? c.suit + '-' + c.rank : 'x') + '-' + p.seat + '-' + k : 'b-p' + p.seat + '-' + k)).join('');
