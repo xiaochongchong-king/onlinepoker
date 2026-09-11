@@ -262,18 +262,22 @@ function rankChar(r) {
 /* ---------------- 渲染 ---------------- */
 function render() {
   if (!S) return;
+  // 僵尸视角自愈：已入座玩家的 you 不可能为 -1；一旦出现说明连接状态错乱，立即重连恢复
+  if (S.you === -1 && session) {
+    console.warn('[zombie-view] you=-1，自动重连恢复');
+    try { ws.close(); } catch (e) { /* 忽略 */ }
+    return;
+  }
   // 已在房间内（无论是否开局）都直接进牌桌
   $('lobby').style.display = 'none';
   $('room-code').textContent = S.code;
   $('hand-no').textContent = S.handNo;
   $('blinds-text').textContent = '盲注 10 / 20' + (S.straddleOn ? ' / 40（抓）' : '');
-  renderSeats();
-  renderCommunity();
-  renderPot();
-  renderHint();
-  renderControls();
-  renderResult();
-  renderWait();
+  // 分区容错：任何一段渲染崩溃都不能冻结其他段（尤其操作区）
+  const sections = [renderSeats, renderCommunity, renderPot, renderHint, renderControls, renderResult, renderWait];
+  for (const fn of sections) {
+    try { fn(); } catch (e) { console.error('[render:' + fn.name + ']', e); }
+  }
 }
 
 function renderSeats() {
@@ -563,6 +567,10 @@ function addLog(msg, cls) {
   box.appendChild(div);
   box.scrollTop = box.scrollHeight;
 }
+// 前端异常浮出水面：写入牌局日志，截图即可见（排障用）
+window.addEventListener('error', (e) => {
+  try { addLog('[前端异常] ' + (e.message || '未知错误'), 'sys'); } catch (err) { /* 忽略 */ }
+});
 
 $('btn-login').addEventListener('click', doLogin);
 $('login-pass').addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
