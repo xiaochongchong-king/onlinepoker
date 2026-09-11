@@ -668,10 +668,14 @@ function handleMessage(ws, msg) {
     return;
   }
   if (m.t === 'rebuy') {
-    if (p.chips > 0) return send(ws, { t: 'error', msg: '还有筹码，无需买入' });
-    p.chips = START_CHIPS;
-    recordBuyin(room, p, '重新买入');
-    logTo(room, p.name + ' 重新买入 ' + START_CHIPS + ' 筹码', 'sys');
+    // 买入：支持金额（1000 的倍数，1000~100000），有无筹码都可买（加仓/复活）
+    const amt = Math.round(m.amount || START_CHIPS);
+    if (amt < START_CHIPS || amt % START_CHIPS !== 0 || amt > 100000) {
+      return send(ws, { t: 'error', msg: '买入金额必须是 1000 的倍数（1000 ~ 100000）' });
+    }
+    p.chips += amt;
+    recordBuyin(room, p, '买入');
+    logTo(room, p.name + ' 买入 ' + amt + ' 筹码', 'sys');
     broadcastState(room);
     return;
   }
