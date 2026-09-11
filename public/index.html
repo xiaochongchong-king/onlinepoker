@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <title>德州扑克 · 在线房间</title>
-<link rel="stylesheet" href="/style.css?v=23">
+<link rel="stylesheet" href="/style.css?v=24">
 </head>
 <body>
 
@@ -28,6 +28,7 @@
         <div class="room-code-tip">房间码（发给好友加入）</div>
         <div id="wait-code"></div>
         <div id="wait-count"></div>
+        <button id="btn-ready-wait">准备</button>
         <button id="btn-start2">开始游戏</button>
         <div id="wait-tip">等待房主开始…</div>
       </div>
@@ -76,6 +77,11 @@
     </div>
   </div>
   <button id="btn-allin" disabled>全下</button>
+  <div id="ready-box" style="display:none">
+    <button id="btn-ready">准 备</button>
+    <button id="btn-unready">取消准备</button>
+    <div id="ready-hint"></div>
+  </div>
 </footer>
 
 <div id="overlay">
@@ -151,6 +157,6 @@
   </div>
 </div>
 
-<script src="/client.js?v=23"></script>
+<script src="/client.js?v=24"></script>
 </body>
 </html>
