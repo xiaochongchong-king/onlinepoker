@@ -17,6 +17,7 @@ body {
   padding: 8px 20px;
   background: linear-gradient(180deg, #1c2947, #131c33);
   border-bottom: 1px solid rgba(255, 215, 130, 0.25);
+  position: relative; z-index: 60;   /* 永远在结算遮罩(z-50)之上，按钮随时可点 */
 }
 #topbar h1 { font-size: 18px; color: #f5c860; letter-spacing: 2px; flex: 0 0 auto; }
 #topbar .hand-no { color: #9fb0d0; font-size: 13px; flex: 1; }
