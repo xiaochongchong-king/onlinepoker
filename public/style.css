@@ -394,6 +394,26 @@ body {
 }
 #btn-start2:hover:not(:disabled) { filter: brightness(1.15); }
 #btn-start2:disabled { opacity: 0.38; cursor: not-allowed; }
+#btn-ready-wait {
+  border: none; border-radius: 8px; padding: 10px 26px;
+  font-size: 14px; font-weight: bold; cursor: pointer; color: #fff;
+  background: linear-gradient(180deg, #e08a1e, #b5640e); margin-bottom: 10px;
+}
+#btn-ready-wait:hover { filter: brightness(1.15); }
+
+/* 局内准备区（观战/候补中显示） */
+#ready-box { display: none; flex-direction: column; align-items: center; gap: 8px; padding: 4px 0; }
+#btn-ready {
+  background: linear-gradient(180deg, #f0a030, #c56f10); color: #fff; border: none;
+  border-radius: 10px; padding: 14px 58px; font-size: 19px; font-weight: bold; cursor: pointer;
+  box-shadow: 0 4px 16px rgba(224, 138, 30, 0.4);
+}
+#btn-ready:hover { filter: brightness(1.12); }
+#btn-unready {
+  background: #31405f; color: #cdd8ee; border: 1px solid #5a6f9e;
+  border-radius: 8px; padding: 9px 26px; font-size: 13px; font-weight: bold; cursor: pointer;
+}
+#ready-hint { font-size: 12px; color: #9fb0d0; }
 #wait-tip { font-size: 13px; color: #9fb0d0; margin-top: 10px; }
 
 /* ==================== 大厅 ==================== */
