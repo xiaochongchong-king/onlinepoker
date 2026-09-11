@@ -164,7 +164,8 @@ function createRoom(host, name, straddle) {
     createdAt: Date.now()
   };
   rooms.set(code, room);
-  addPlayer(room, host, name);
+  const hp = addPlayer(room, host, name);
+  room.creatorId = hp.playerId;   // 创建者凭证：其主动离开时解散房间
   return room;
 }
 
@@ -678,6 +679,18 @@ function handleMessage(ws, msg) {
     recordBuyin(room, p, '买入', amt);
     logTo(room, p.name + ' 买入 ' + amt + ' 筹码', 'sys');
     broadcastState(room);
+    return;
+  }
+  if (m.t === 'leave') {
+    // 主动离开：创建者离开 → 解散房间（全员弹回大厅，房间从列表消失）；
+    // 普通玩家离开 → 走正常断线流程（座位保留，可重连）
+    if (p.playerId === room.creatorId) {
+      broadcast(room, { t: 'room_closed', msg: '房主 ' + p.name + ' 解散了房间' });
+      for (const q of room.players) { try { q.ws.close(); } catch (e) { /* 忽略 */ } }
+      rooms.delete(room.code);
+      return;
+    }
+    try { ws.close(); } catch (e) { /* 忽略 */ }
     return;
   }
   if (m.t === 'ready') {
