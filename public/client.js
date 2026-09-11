@@ -166,6 +166,10 @@ function initLobby() {
   setInterval(() => {
     if ($('lobby').style.display !== 'none' && $('lobby-entry').style.display === 'block') requestRooms();
   }, 5000);
+  // 移动端日志：默认收起，点标题栏展开/收起
+  const lp = $('log-panel');
+  const lpTitle = lp.querySelector('h3');
+  if (lpTitle) lpTitle.addEventListener('click', () => lp.classList.toggle('open'));
 }
 
 /* 等待开局面板：建房/加入后直接入座牌桌，房主在中央开始 */
@@ -372,6 +376,7 @@ function renderControls() {
   btnRaise.disabled = !canRaise;
   const qb = $('quick-bets').children;
   for (const b of qb) b.disabled = !canRaise;
+  $('quick-select').disabled = !canRaise;
   // 开池时下注按钮叫「下注」，有注可加时才叫「加注」
   $('btn-raise').textContent = S.currentBet > 0 ? '加注' : '下注';
   if (canRaise) {
@@ -416,7 +421,8 @@ function renderResult() {
     // 有人进房/重连后状态广播重新走到这里，canNext=true 时结算页带「下一局」自动回归
     if (canNext) {
       clearTimeout(window._soloT); window._soloT = null;
-    } else if (window._soloDismissedFor !== S.handNo && !window._soloT) {
+    } else if (!broke && window._soloDismissedFor !== S.handNo && !window._soloT) {
+      // 注意：broke（等待买入）时不自动收起——买入按钮必须留得住
       window._soloT = setTimeout(() => {
         window._soloT = null;
         if (S && S.result && !canContinue()) {
@@ -470,8 +476,40 @@ function initControls() {
     }
     updateRaiseAmt();
   });
+  // 移动端下拉快捷注码（与按钮同一套计算）
+  $('quick-select').addEventListener('change', () => {
+    const v = $('quick-select').value;
+    const slider = $('raise-slider');
+    if (!v || slider.disabled) { $('quick-select').value = ''; return; }
+    if (v === 'all') {
+      slider.value = slider.max;
+    } else {
+      const target = Math.round((S.currentBet + S.pot * parseFloat(v)) / 10) * 10;
+      slider.value = Math.max(parseInt(slider.min, 10), Math.min(parseInt(slider.max, 10), target));
+    }
+    updateRaiseAmt();
+    $('quick-select').value = '';
+  });
   $('btn-next').addEventListener('click', () => ws.send(JSON.stringify({ t: 'next' })));
-  $('btn-rebuy').addEventListener('click', () => ws.send(JSON.stringify({ t: 'rebuy' })));
+  // 买入弹窗（顶栏「买入」与结算页「重新买入」共用；金额须为 1000 的倍数）
+  function openRebuy() {
+    $('rebuy-amount').value = 1000;
+    $('rebuy-tip').textContent = '必须是 1000 的倍数（1000 ~ 100000）· 计入公账';
+    $('rebuy-overlay').style.display = 'flex';
+  }
+  $('btn-rebuy').addEventListener('click', openRebuy);
+  $('btn-rebuy2').addEventListener('click', openRebuy);
+  $('btn-rebuy-cancel').addEventListener('click', () => { $('rebuy-overlay').style.display = 'none'; });
+  $('rebuy-overlay').addEventListener('click', (e) => { if (e.target === $('rebuy-overlay')) $('rebuy-overlay').style.display = 'none'; });
+  $('btn-rebuy-ok').addEventListener('click', () => {
+    const amt = Math.round(Number($('rebuy-amount').value));
+    if (!amt || amt < 1000 || amt % 1000 !== 0 || amt > 100000) {
+      $('rebuy-tip').textContent = '金额无效：必须是 1000 的倍数（1000 ~ 100000）';
+      return;
+    }
+    ws.send(JSON.stringify({ t: 'rebuy', amount: amt }));
+    $('rebuy-overlay').style.display = 'none';
+  });
   $('btn-buyins').addEventListener('click', () => { renderBuyins(); $('buyins-overlay').style.display = 'flex'; });
   $('btn-buyins-close').addEventListener('click', () => { $('buyins-overlay').style.display = 'none'; });
   $('buyins-overlay').addEventListener('click', (e) => { if (e.target === $('buyins-overlay')) $('buyins-overlay').style.display = 'none'; });
