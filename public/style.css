@@ -483,6 +483,12 @@ body {
   #raise-box .row2 { grid-template-columns: 74px 120px 74px; gap: 6px; }
   #quick-bets { gap: 6px; display: none; }          /* 移动端：按钮组换下拉框 */
   #quick-select { display: block; }
+  /* 7 人以上牌桌拥挤：座位牌缩小一档，避免压到公共牌/邻座 */
+  #seats.crowded .seat .cards { min-height: 54px; gap: 3px; margin-bottom: 3px; }
+  #seats.crowded .seat .cards .card { width: 32px; height: 45px; }
+  #seats.crowded .seat .cards .card .rank { font-size: 11px; top: 2px; left: 3px; }
+  #seats.crowded .seat .cards .card .suit { font-size: 10px; top: 14px; left: 3px; }
+  #seats.crowded .seat .cards .card .big-suit { font-size: 16px; }
   /* 移动端日志：默认收起为一条（点标题展开），不再遮挡按钮 */
   #log-panel { height: 34px; overflow: hidden; transition: height 0.2s; cursor: pointer; position: relative; }
   #log-panel.open { height: 120px; overflow: visible; cursor: default; }
