@@ -184,8 +184,8 @@ function addPlayer(room, ws, name) {
 }
 
 /** 记录一次买入（初始/重新），并广播日志 */
-function recordBuyin(room, p, label) {
-  room.buyins.push({ seat: p.seat, name: p.name, amount: START_CHIPS, label: label, handNo: room.handNo, ts: Date.now() });
+function recordBuyin(room, p, label, amount) {
+  room.buyins.push({ seat: p.seat, name: p.name, amount: amount || START_CHIPS, label: label, handNo: room.handNo, ts: Date.now() });
   if (room.buyins.length > 200) room.buyins.shift();
 }
 
@@ -674,7 +674,7 @@ function handleMessage(ws, msg) {
       return send(ws, { t: 'error', msg: '买入金额必须是 1000 的倍数（1000 ~ 100000）' });
     }
     p.chips += amt;
-    recordBuyin(room, p, '买入');
+    recordBuyin(room, p, '买入', amt);
     logTo(room, p.name + ' 买入 ' + amt + ' 筹码', 'sys');
     broadcastState(room);
     return;
