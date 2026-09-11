@@ -692,6 +692,9 @@ function handleMessage(ws, msg) {
 function handleClose(ws) {
   const room = ws._room, p = ws._player;
   if (!room || !p) return;
+  // 关键防护：重连/重登已把座位交给了新连接（p.ws 已不是这条旧连接），
+  // 旧连接的迟到 close 不得再执行掉线逻辑（否则会把活人标记离线/强制弃牌/抢走房主）
+  if (p.ws !== ws) return;
   p.connected = false;
   logTo(room, p.name + ' 离开了房间', 'sys');
   // 轮到掉线玩家：立即弃牌（掉线即弃牌，与超时不同）
