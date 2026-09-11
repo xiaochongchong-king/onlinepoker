@@ -398,7 +398,7 @@ function myToCall() {
 function renderControls() {
   const me = S.players[S.you];
   // 观战/候补模式：只显示准备区，隐藏操作区
-  const actionIds = ['btn-fold', 'btn-call', 'btn-raise', 'btn-allin', 'raise-box', 'quick-bets', 'quick-select'];
+  const actionIds = ['btn-fold', 'btn-call', 'btn-raise', 'btn-allin', 'raise-box', 'quick-select'];
   const setActionsVisible = (v) => { for (const id of actionIds) $(id).style.display = v ? '' : 'none'; };
   if (me && S.started && !me.ready) {
     setActionsVisible(false);
@@ -434,8 +434,6 @@ function renderControls() {
   const canRaise = canPlay && maxTotal >= minRaiseTotal;
   slider.disabled = !canRaise;
   btnRaise.disabled = !canRaise;
-  const qb = $('quick-bets').children;
-  for (const b of qb) b.disabled = !canRaise;
   $('quick-select').disabled = !canRaise;
   // 开池时下注按钮叫「下注」，有注可加时才叫「加注」
   $('btn-raise').textContent = S.currentBet > 0 ? '加注' : '下注';
@@ -523,20 +521,7 @@ function initControls() {
   $('btn-allin').addEventListener('click', () => ws.send(JSON.stringify({ t: 'act', act: { type: 'allin' } })));
   $('raise-slider').addEventListener('input', updateRaiseAmt);
   // 快捷注码：按底池 1/2、1/3、1/4 或 Allin 一键设定加注额
-  $('quick-bets').addEventListener('click', (e) => {
-    const b = e.target && e.target.closest ? e.target.closest('button') : null;
-    if (!b || b.disabled || !S) return;
-    const slider = $('raise-slider');
-    if (slider.disabled) return;
-    if (b.dataset.frac === 'all') {
-      slider.value = slider.max;
-    } else {
-      const target = Math.round((S.currentBet + S.pot * parseFloat(b.dataset.frac)) / 10) * 10;
-      slider.value = Math.max(parseInt(slider.min, 10), Math.min(parseInt(slider.max, 10), target));
-    }
-    updateRaiseAmt();
-  });
-  // 移动端下拉快捷注码（与按钮同一套计算）
+  // 快捷注码下拉（与滑杆同一套计算；Allin 由「全下」按钮承担）
   $('quick-select').addEventListener('change', () => {
     const v = $('quick-select').value;
     const slider = $('raise-slider');
