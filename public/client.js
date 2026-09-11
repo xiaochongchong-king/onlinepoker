@@ -152,6 +152,13 @@ function initLobby() {
     $('lobby-msg').textContent = '';
   });
   $('btn-start2').addEventListener('click', () => ws.send(JSON.stringify({ t: 'start' })));
+  // 准备/取消准备（等待面板与局内准备区共用）
+  $('btn-ready-wait').addEventListener('click', () => {
+    const me = S && S.players[S.you];
+    ws.send(JSON.stringify({ t: 'ready', on: !(me && me.ready) }));
+  });
+  $('btn-ready').addEventListener('click', () => ws.send(JSON.stringify({ t: 'ready', on: true })));
+  $('btn-unready').addEventListener('click', () => ws.send(JSON.stringify({ t: 'ready', on: false })));
   // 房间列表：点击进入 + 大厅停留期间每 5 秒刷新
   $('room-list').addEventListener('click', (e) => {
     const row = e.target && e.target.closest ? e.target.closest('.rl-row') : null;
@@ -179,12 +186,17 @@ function renderWait() {
   w.style.display = 'flex';
   $('wait-code').textContent = S.code;
   const online = S.players.filter(p => p.connected).length;
-  $('wait-count').textContent = '已入座 ' + online + ' 人（2~6 人可开局）';
+  const readyCount = S.players.filter(p => p.connected && p.ready && p.chips > 0).length;
+  $('wait-count').textContent = '已入座 ' + online + ' 人 · 已准备 ' + readyCount + ' 人';
   const isHost = S.you === S.hostSeat;
+  const me = S.players[S.you];
+  // 准备开关：文案随状态；满 2 名已准备才允许开局
+  const bw = $('btn-ready-wait');
+  bw.textContent = (me && me.ready) ? '取消准备' : '准备';
   $('btn-start2').style.display = isHost ? '' : 'none';
-  $('wait-tip').textContent = isHost ? '' : '等待房主开始…';
-  $('btn-start2').disabled = online < 2;
-  $('btn-start2').textContent = online < 2 ? '开始游戏（至少 2 人）' : '开始游戏（' + online + ' 人）';
+  $('wait-tip').textContent = isHost ? '' : '等待房主开始…（先点「准备」入座）';
+  $('btn-start2').disabled = readyCount < 2;
+  $('btn-start2').textContent = readyCount < 2 ? '开始游戏（待 2 人准备）' : '开始游戏（' + readyCount + ' 人已准备）';
 }
 
 function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
@@ -293,7 +305,7 @@ function renderSeats() {
     const cards = p.cards.map((c, k) => cardHTML(c, !faceUp,
       faceUp ? 'f-' + (c ? c.suit + '-' + c.rank : 'x') + '-' + p.seat + '-' + k : 'b-p' + p.seat + '-' + k)).join('');
     let status = '';
-    if (!p.inHand) status = S.phase === 'lobby' ? '已入座' : (p.chips <= 0 ? '等待买入' : '观战中');
+    if (!p.inHand) status = S.phase === 'lobby' ? (p.ready ? '已准备' : '已入座') : (p.chips <= 0 ? '等待买入' : (p.ready ? '已准备' : '观战中'));
     if (p.folded) status = '已弃牌';
     else if (S.winners.indexOf(p.seat) !== -1) status = '★ 获胜 ★';
     else if (p.allIn && p.inHand) status = '全下';
@@ -372,8 +384,29 @@ function myToCall() {
 }
 
 function renderControls() {
-  const myTurn = S.acting === S.you && S.actingDeadline > 0;
   const me = S.players[S.you];
+  // 观战/候补模式：只显示准备区，隐藏操作区
+  const actionIds = ['btn-fold', 'btn-call', 'btn-raise', 'btn-allin', 'raise-box', 'quick-bets', 'quick-select'];
+  const setActionsVisible = (v) => { for (const id of actionIds) $(id).style.display = v ? '' : 'none'; };
+  if (me && S.started && !me.ready) {
+    setActionsVisible(false);
+    $('ready-box').style.display = 'flex';
+    $('btn-ready').style.display = '';
+    $('btn-unready').style.display = 'none';
+    $('ready-hint').textContent = '你在观战 · 点「准备」参与下一局';
+    return;
+  }
+  if (me && S.started && me.ready && !me.inHand && !S.result) {
+    setActionsVisible(false);
+    $('ready-box').style.display = 'flex';
+    $('btn-ready').style.display = 'none';
+    $('btn-unready').style.display = '';
+    $('ready-hint').textContent = '已准备 · 等待下一局发牌';
+    return;
+  }
+  setActionsVisible(true);
+  $('ready-box').style.display = 'none';
+  const myTurn = S.acting === S.you && S.actingDeadline > 0;
   const canPlay = myTurn && me && me.inHand && !me.folded && !me.allIn;
   const toCall = myToCall();
 
