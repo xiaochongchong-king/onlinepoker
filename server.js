@@ -682,14 +682,7 @@ function handleMessage(ws, msg) {
     return;
   }
   if (m.t === 'leave') {
-    // 主动离开：创建者离开 → 解散房间（全员弹回大厅，房间从列表消失）；
-    // 普通玩家离开 → 走正常断线流程（座位保留，可重连）
-    if (p.playerId === room.creatorId) {
-      broadcast(room, { t: 'room_closed', msg: '房主 ' + p.name + ' 解散了房间' });
-      for (const q of room.players) { try { q.ws.close(); } catch (e) { /* 忽略 */ } }
-      rooms.delete(room.code);
-      return;
-    }
+    // 主动离开：与断线同等处理——房主由 handleClose 自动移交给下一位在线玩家，房间保留
     try { ws.close(); } catch (e) { /* 忽略 */ }
     return;
   }
