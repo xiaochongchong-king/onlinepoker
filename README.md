@@ -4,7 +4,7 @@
 
 ## 功能
 
-- **登录认证**：固定用户名/口令登录（`poker` / `Kylinboy@0909`），POST /login 签发令牌，WebSocket 握手级校验，未认证无法进入牌局
+- **登录认证**：固定用户名/口令登录（口令定期轮换，不公开），POST /login 签发令牌，WebSocket 握手级校验，未认证无法进入牌局
 - **房间系统**：创建房间得 4 位房间码，好友凭码加入；房主开局
 - **完整规则**：标准德州流程（盲注、四轮换注、摊牌、边池、全下亮牌跑马）
 - **60 秒行动倒计时**：超时自动过牌/弃牌；掉线自动弃牌，房主自动移交
@@ -21,12 +21,19 @@ npm start          # 默认 3000 端口；PORT 环境变量可改
 
 浏览器打开 `http://localhost:3000`，创建房间，把房间码发给好友。
 
-## 部署
+## 部署（2026-09-14 现行架构）
 
-任意支持 Node.js 单端口 HTTP 服务的平台（Render / Railway / 云服务器等）：
+线上固定地址：**https://www.xpoker.top**
 
-- 启动命令：`npm start`
-- 必须监听 `PORT` 环境变量并绑定 `0.0.0.0`（已内置）
+```
+www.xpoker.top
+  → Cloudflare Worker（poker-proxy v2：静态文件内嵌直接应答；/login 与 WebSocket 转发源站）
+  → 腾讯云 CloudBase 云托管（上海，容器 0.25核/0.5G，常驻 1 实例，端口 80）
+```
+
+- 本仓库 `main` 分支 = 线上代码源头：改动推送到 main 后，从 GitHub 拉取全量代码部署到 CloudBase 编译上线
+- Dockerfile：`ENV PORT=80`，`npm ci --omit=dev` + `npm start`
+- 历史：曾托管于 Back4app（免费档 URL 频繁过期，已弃用）
 
 ## 技术结构
 
