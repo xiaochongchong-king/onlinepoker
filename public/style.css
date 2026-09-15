@@ -453,10 +453,10 @@ body {
 .lobby-create { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
 .lobby-create #btn-create { margin-bottom: 0; flex: 1; }
 .lock-toggle {
-  display: flex; align-items: center; gap: 5px; white-space: nowrap;
-  font-size: 13px; color: #cdd8ee; cursor: pointer; user-select: none;
+  display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+  font-size: 13px; color: #cdd8ee; cursor: pointer; user-select: none; line-height: 1;
 }
-.lock-toggle input { width: 16px; height: 16px; accent-color: #f5c860; cursor: pointer; }
+.lock-toggle input { width: 18px; height: 18px; margin: 0; accent-color: #f5c860; cursor: pointer; vertical-align: middle; }
 #create-pass {
   width: 96px !important; margin-bottom: 0; letter-spacing: 4px; text-align: center;
   background: #0e1526; border: 1px solid #5a6f9e; border-radius: 8px;
@@ -473,7 +473,7 @@ body {
 /* 上锁房间口令弹窗 */
 #joinpass-overlay {
   position: fixed; inset: 0; background: rgba(4, 8, 18, 0.72);
-  display: none; align-items: center; justify-content: center; z-index: 58;
+  display: none; align-items: center; justify-content: center; z-index: 110;
 }
 #joinpass-panel {
   background: linear-gradient(180deg, #1d2a4a, #131d36);
