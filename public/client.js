@@ -9,6 +9,7 @@ let myName = localStorage.getItem('poker-online-name') || '';
 let token = sessionStorage.getItem('poker-online-token') || '';
 let session = null;           // 座位凭证 {code, playerId}：断线重连恢复原座
 try { session = JSON.parse(localStorage.getItem('poker-online-session') || 'null'); } catch (e) { session = null; }
+let lastRooms = {};           // 最近一次房间列表（按 code 索引），用于判断目标房间是否上锁
 
 /* ---------------- 登录 ---------------- */
 function showLogin(msg) {
@@ -102,6 +103,11 @@ function connect() {
         $('lobby-entry').style.display = 'block';
         $('lobby-msg').textContent = m.msg;
       }
+      else if (m.needPassword) {
+        // 口令错误或未提供：弹出口令框重试
+        openJoinPass(m.code || '');
+        showJoinPassTip('口令错误，请重试');
+      }
       else if ($('lobby').style.display !== 'none') $('lobby-msg').textContent = m.msg;
       else addLog('提示：' + m.msg, 'sys');
     }
@@ -131,37 +137,100 @@ function requestRooms() {
 function renderRoomList(list) {
   const box = $('room-list');
   if (!box) return;
+  lastRooms = {};
   if (!list || !list.length) {
     box.innerHTML = '<div class="rl-empty">暂无可加入的房间，创建一个吧</div>';
     return;
   }
+  for (const r of list) lastRooms[r.code] = r;
   box.innerHTML = list.map(r =>
     '<div class="rl-row" data-code="' + esc(r.code) + '">' +
       '<span class="rl-code">' + esc(r.code) + '</span>' +
-      '<span class="rl-info">' + r.online + '/' + r.count + ' 人' + (r.started ? ' · 进行中' : ' · 等待中') + (r.straddle ? ' · 抓' : '') + '</span>' +
+      (r.locked ? '<span class="rl-lock" title="房间已上锁">🔒</span>' : '') +
+      '<span class="rl-info">' + r.online + '/' + r.count + ' 人' + (r.started ? ' · 进行中' : ' · 等待中') + (r.straddle ? ' · 抓' : '') + (r.locked ? ' · 锁' : '') + '</span>' +
       '<span class="rl-names">' + esc(r.names.join('、')) + '</span>' +
     '</div>').join('');
 }
 
+/* ---------------- 加入房间（含上锁口令处理） ---------------- */
+function doJoin(code, name, password) {
+  myName = name;
+  localStorage.setItem('poker-online-name', myName);
+  const msg = { t: 'join', code: code, name: myName };
+  if (password) msg.password = password;
+  ws.send(JSON.stringify(msg));
+  $('lobby-msg').textContent = '';
+  $('join-pass').value = '';   // 清空口令输入，避免明文残留
+  $('create-pass').value = '';
+}
+
+/* 点击/输入房间码加入：若房间上锁且尚未输入口令，则弹出口令框 */
+function tryJoin(code) {
+  const name = requireName();
+  if (name === null) return;
+  const room = lastRooms[code];
+  if (room && room.locked && !$('join-pass').value.trim()) {
+    openJoinPass(code);
+    return;
+  }
+  doJoin(code, name, $('join-pass').value.trim());
+}
+
+let joinPassTarget = '';
+function openJoinPass(code) {
+  joinPassTarget = code;
+  $('joinpass-code').textContent = '房间码 ' + code;
+  $('joinpass-input').value = '';
+  $('joinpass-tip').style.display = 'none';
+  $('joinpass-overlay').style.display = 'flex';
+  setTimeout(() => { try { $('joinpass-input').focus(); } catch (e) { /* 忽略 */ } }, 30);
+}
+function closeJoinPass() {
+  $('joinpass-overlay').style.display = 'none';
+  joinPassTarget = '';
+}
+function showJoinPassTip(t) { $('joinpass-tip').textContent = t; $('joinpass-tip').style.display = 'block'; }
+function submitJoinPass() {
+  const code = joinPassTarget;
+  const pw = $('joinpass-input').value.replace(/[^0-9]/g, '').slice(0, 4);
+  if (pw.length !== 4) { showJoinPassTip('口令需为 4 位数字'); return; }
+  const name = myNameInput();
+  if (!name) { showJoinPassTip('请先在上方填写昵称'); return; }
+  closeJoinPass();
+  doJoin(code, name, pw);
+}
+
 function initLobby() {
   $('name-input').value = myName;
+  // 加锁开关：勾选时显示口令输入框
+  $('create-lock').addEventListener('change', () => {
+    const on = $('create-lock').checked;
+    $('create-pass').style.display = on ? 'block' : 'none';
+    $('create-pass').value = '';
+    if (on) { try { $('create-pass').focus(); } catch (e) { /* 忽略 */ } }
+  });
   $('btn-create').addEventListener('click', () => {
     const name = requireName();
     if (name === null) return;
     myName = name;
     localStorage.setItem('poker-online-name', myName);
-    ws.send(JSON.stringify({ t: 'create', name: myName }));
+    const locked = $('create-lock').checked;
+    const password = locked ? $('create-pass').value.replace(/[^0-9]/g, '').slice(0, 4) : '';
+    if (locked && password.length !== 4) {
+      $('lobby-msg').textContent = '加锁房间需设置 4 位数字口令';
+      try { $('create-pass').focus(); } catch (e) { /* 忽略 */ }
+      return;
+    }
+    const msg = { t: 'create', name: myName };
+    if (locked) { msg.locked = true; msg.password = password; }
+    ws.send(JSON.stringify(msg));
+    $('create-pass').value = '';
     $('lobby-msg').textContent = '';
   });
   $('btn-join').addEventListener('click', () => {
     const code = $('code-input').value.toUpperCase().trim();
     if (code.length !== 4) { $('lobby-msg').textContent = '请输入 4 位房间码'; return; }
-    const name = requireName();
-    if (name === null) return;
-    myName = name;
-    localStorage.setItem('poker-online-name', myName);
-    ws.send(JSON.stringify({ t: 'join', code: code, name: myName }));
-    $('lobby-msg').textContent = '';
+    tryJoin(code);
   });
   $('btn-start2').addEventListener('click', () => ws.send(JSON.stringify({ t: 'start' })));
   // 准备/取消准备（等待面板与局内准备区共用）
@@ -175,12 +244,7 @@ function initLobby() {
   $('room-list').addEventListener('click', (e) => {
     const row = e.target && e.target.closest ? e.target.closest('.rl-row') : null;
     if (!row) return;
-    const name = requireName();
-    if (name === null) return;
-    myName = name;
-    localStorage.setItem('poker-online-name', myName);
-    ws.send(JSON.stringify({ t: 'join', code: row.dataset.code, name: myName }));
-    $('lobby-msg').textContent = '';
+    tryJoin(row.dataset.code);
   });
   setInterval(() => {
     if ($('lobby').style.display !== 'none' && $('lobby-entry').style.display === 'block') requestRooms();
@@ -197,6 +261,7 @@ function renderWait() {
   if (S.started) { w.style.display = 'none'; return; }
   w.style.display = 'flex';
   $('wait-code').textContent = S.code;
+  $('wait-lock').style.display = S.locked ? 'block' : 'none';
   const online = S.players.filter(p => p.connected).length;
   const readyCount = S.players.filter(p => p.connected && p.ready && p.chips > 0).length;
   $('wait-count').textContent = '已入座 ' + online + ' 人 · 已准备 ' + readyCount + ' 人';
@@ -579,6 +644,11 @@ function initControls() {
     ws.send(JSON.stringify({ t: 'straddle', on: false }));
     $('straddle-overlay').style.display = 'none';
   });
+  // 上锁房间口令弹窗：输入口令后带密码加入
+  $('btn-joinpass-ok').addEventListener('click', submitJoinPass);
+  $('joinpass-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') submitJoinPass(); });
+  $('btn-joinpass-cancel').addEventListener('click', closeJoinPass);
+  $('joinpass-overlay').addEventListener('click', (e) => { if (e.target === $('joinpass-overlay')) closeJoinPass(); });
   // 等待状态（只剩 1 人）时点遮罩空白处立即收起结算页
   $('overlay').addEventListener('click', (e) => {
     if (e.target === $('overlay') && S && S.result && !canContinue()) {
