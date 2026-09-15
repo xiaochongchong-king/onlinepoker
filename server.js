@@ -153,15 +153,18 @@ function makeCode() {
   return code;
 }
 
-function createRoom(host, name, straddle) {
+function createRoom(host, name, opts) {
+  opts = opts || {};
   const code = makeCode();
   const room = {
     code: code, players: [], hostSeat: 0, handNo: 0, hid: 0,
     dealer: -1, sbIdx: -1, bbIdx: -1, game: null, pending: null,
-    straddle: !!straddle,       // 抓位玩法开关（开房时选定）
-    straddleIdx: -1,            // 本局抓位座位（-1=无）
-    buyins: [],               // 买入记录：[{seat, name, amount, label, handNo, ts}]
-    createdAt: Date.now()
+    straddle: !!opts.straddle,    // 抓位玩法开关（开房时选定）
+    straddleIdx: -1,             // 本局抓位座位（-1=无）
+    buyins: [],                  // 买入记录：[{seat, name, amount, label, handNo, ts}]
+    createdAt: Date.now(),
+    locked: !!opts.locked,       // 房间加锁：true 时需 4 位口令才能加入
+    password: (opts.locked && typeof opts.password === 'string') ? opts.password.slice(0, 4) : ''
   };
   rooms.set(code, room);
   const hp = addPlayer(room, host, name);
@@ -223,6 +226,7 @@ function viewFor(room, me) {
     t: 'state',
     code: room.code, hostSeat: room.hostSeat, handNo: room.handNo,
     started: !!g, phase: g ? g.phase : 'lobby',
+    locked: !!room.locked,
     dealer: room.dealer, sb: room.sbIdx, bb: room.bbIdx,
     straddleOn: room.straddle, straddleSeat: room.straddleIdx,
     community: g ? g.community : [],
@@ -598,6 +602,7 @@ function handleMessage(ws, msg) {
         online: r.players.filter(p => p.connected).length,
         started: !!r.game,
         straddle: !!r.straddle,
+        locked: !!r.locked,
         names: r.players.map(p => p.name)
       });
     }
@@ -607,10 +612,16 @@ function handleMessage(ws, msg) {
   if (m.t === 'create') {
     const name = String(m.name || '').replace(/[<>&"']/g, '').trim().slice(0, 8);
     if (!name) return send(ws, { t: 'error', msg: '请先填写昵称' });
-    const r = createRoom(ws, name, !!m.straddle);
+    let locked = !!m.locked;
+    let password = '';
+    if (locked) {
+      password = String(m.password || '').replace(/[^0-9]/g, '').slice(0, 4);
+      if (password.length !== 4) return send(ws, { t: 'error', msg: '加锁房间需要设置 4 位数字口令' });
+    }
+    const r = createRoom(ws, name, { straddle: !!m.straddle, locked: locked, password: password });
     recordBuyin(r, ws._player, '初始买入');
     send(ws, { t: 'joined', code: r.code, playerId: ws._player.playerId, seat: ws._player.seat, name: name });
-    logTo(r, name + ' 创建了房间（房间码 ' + r.code + '）并买入 ' + START_CHIPS + ' 筹码', 'sys');
+    logTo(r, name + ' 创建了' + (locked ? '加锁' : '') + '房间（房间码 ' + r.code + '）并买入 ' + START_CHIPS + ' 筹码', 'sys');
     broadcastState(r);
     return;
   }
@@ -619,6 +630,10 @@ function handleMessage(ws, msg) {
     if (!r) return send(ws, { t: 'error', msg: '房间不存在，请检查房间码' });
     const name = String(m.name || '').replace(/[<>&"']/g, '').trim().slice(0, 8);
     if (!name) return send(ws, { t: 'error', msg: '请先填写昵称' });
+    // 加锁校验：仅新加入需口令；断线重连(join 之外的 rejoin 分支)凭座位凭证免验
+    if (r.locked && String(m.password || '') !== r.password) {
+      return send(ws, { t: 'error', msg: '房间已上锁，请输入正确的 4 位口令', needPassword: true, code: r.code });
+    }
     // 同名检查：在线玩家撞名 → 拒；离线座位同名 → 收回原座
     const dup = r.players.find(q => q.name === name);
     if (dup) {
