@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <title>德州扑克 · 在线房间</title>
-<link rel="stylesheet" href="/style.css?v=27">
+<link rel="stylesheet" href="/style.css?v=28">
 </head>
 <body>
 
@@ -27,6 +27,7 @@
       <div id="wait-panel">
         <div class="room-code-tip">房间码（发给好友加入）</div>
         <div id="wait-code"></div>
+        <div id="wait-lock" class="wait-lock" style="display:none">🔒 房间已上锁 · 需口令加入</div>
         <div id="wait-count"></div>
         <button id="btn-ready-wait">准备</button>
         <button id="btn-start2">开始游戏</button>
@@ -121,6 +122,19 @@
   </div>
 </div>
 
+<div id="joinpass-overlay" style="display:none; position:fixed; inset:0; z-index:58; background:rgba(4,8,18,0.72)">
+  <div id="joinpass-panel">
+    <h2>🔒 房间已上锁</h2>
+    <div id="joinpass-code" class="jp-code"></div>
+    <input id="joinpass-input" maxlength="4" inputmode="numeric" placeholder="请输入 4 位口令">
+    <div id="joinpass-tip" style="display:none">口令错误，请重试</div>
+    <div class="jp-btns">
+      <button id="btn-joinpass-ok">加入</button>
+      <button id="btn-joinpass-cancel">取消</button>
+    </div>
+  </div>
+</div>
+
 <div id="lobby">
   <div id="lobby-panel">
     <h1>♠ 在线德州扑克</h1>
@@ -132,13 +146,18 @@
     </div>
     <div id="lobby-entry" style="display:none">
       <input id="name-input" maxlength="8" placeholder="你的昵称（最多8字）">
-      <button id="btn-create">创建房间</button>
+      <div class="lobby-create">
+        <button id="btn-create">创建房间</button>
+        <label class="lock-toggle" for="create-lock"><input type="checkbox" id="create-lock"> 🔒 加锁</label>
+        <input id="create-pass" maxlength="4" inputmode="numeric" placeholder="4位口令" style="display:none">
+      </div>
       <div id="room-list-wrap">
         <div class="rl-title">已存在的房间（点击直接进入）</div>
         <div id="room-list"></div>
       </div>
       <div class="lobby-join">
         <input id="code-input" maxlength="4" placeholder="房间码">
+        <input id="join-pass" maxlength="4" inputmode="numeric" placeholder="口令" style="display:none">
         <button id="btn-join">加入房间</button>
       </div>
       <div id="lobby-msg"></div>
@@ -147,6 +166,6 @@
   </div>
 </div>
 
-<script src="/client.js?v=27"></script>
+<script src="/client.js?v=28"></script>
 </body>
 </html>
