@@ -648,13 +648,22 @@ function handleMessage(ws, msg) {
       broadcastState(r);
       return;
     }
-    if (r.players.length >= 9) return send(ws, { t: 'error', msg: '房间已满（9 人）' });
-    addPlayer(r, ws, name);
-    recordBuyin(r, ws._player, '初始买入');
-    send(ws, { t: 'joined', code: r.code, playerId: ws._player.playerId, seat: ws._player.seat, name: name });
-    logTo(r, name + ' 加入房间并买入 ' + START_CHIPS + ' 筹码', 'sys');
-    broadcastState(r);
-    return;
+  if (r.players.length >= 9) return send(ws, { t: 'error', msg: '房间已满（9 人）' });
+  addPlayer(r, ws, name);
+  recordBuyin(r, ws._player, '初始买入');
+  // 新玩家加入后，如果当前房主已离线/不存在，则移交房主给第一个在线玩家
+  const host = r.players.find(q => q.seat === r.hostSeat);
+  if (!host || !host.connected) {
+    const next = r.players.find(q => q.connected);
+    if (next) {
+      r.hostSeat = next.seat;
+      logTo(r, '房主移交给 ' + next.name, 'sys');
+    }
+  }
+  send(ws, { t: 'joined', code: r.code, playerId: ws._player.playerId, seat: ws._player.seat, name: name });
+  logTo(r, name + ' 加入房间并买入 ' + START_CHIPS + ' 筹码', 'sys');
+  broadcastState(r);
+  return;
   }
   // 断线重连：凭座位凭证恢复原座位
   if (m.t === 'rejoin') {
@@ -665,12 +674,21 @@ function handleMessage(ws, msg) {
     if (p.ws && p.ws !== ws && p.ws.readyState === 1) { try { p.ws.close(); } catch (e) { /* 忽略 */ } }
     p.ws = ws;
     ws._player = p;
-    ws._room = r;
-    p.connected = true;
-    send(ws, { t: 'joined', code: r.code, playerId: p.playerId, seat: p.seat, name: p.name });
-    logTo(r, p.name + ' 重新连接', 'sys');
-    broadcastState(r);
-    return;
+  ws._room = r;
+  p.connected = true;
+  // 断线重连后，如果当前房主已离线/不存在，则移交房主给第一个在线玩家
+  const host = r.players.find(q => q.seat === r.hostSeat);
+  if (!host || !host.connected) {
+    const next = r.players.find(q => q.connected);
+    if (next) {
+      r.hostSeat = next.seat;
+      logTo(r, '房主移交给 ' + next.name, 'sys');
+    }
+  }
+  send(ws, { t: 'joined', code: r.code, playerId: p.playerId, seat: p.seat, name: p.name });
+  logTo(r, p.name + ' 重新连接', 'sys');
+  broadcastState(r);
+  return;
   }
   if (!room || !p) return;
 
