@@ -454,9 +454,10 @@ body {
 .lobby-create #btn-create { margin-bottom: 0; flex: 1; }
 .lock-toggle {
   display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
-  font-size: 13px; color: #cdd8ee; cursor: pointer; user-select: none; line-height: 1;
+  cursor: pointer; user-select: none;
 }
-.lock-toggle input { width: 18px; height: 18px; margin: 0; accent-color: #f5c860; cursor: pointer; vertical-align: middle; }
+#lobby-panel .lock-toggle input { width: 17px; height: 17px; margin: 0; padding: 0; accent-color: #f5c860; cursor: pointer; flex: 0 0 auto; align-self: center; }
+.lock-toggle .lk { display: inline-flex; align-items: center; font-size: 13px; color: #cdd8ee; line-height: 17px; }
 #create-pass {
   width: 96px !important; margin-bottom: 0; letter-spacing: 4px; text-align: center;
   background: #0e1526; border: 1px solid #5a6f9e; border-radius: 8px;
