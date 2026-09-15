@@ -414,30 +414,78 @@ const SoundFX = (() => {
     src.start(t0); src.stop(t0 + opt.dur + 0.05);
   }
 
+  // TTS 语音：使用 Web Speech API 播报中文语音
+  function speak(text) {
+    if (!enabled) return;
+    try {
+      if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'zh-CN';
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        utterance.volume = 0.8;
+        window.speechSynthesis.speak(utterance);
+      }
+    } catch (e) { /* 忽略 TTS 不支持的情况 */ }
+  }
+
   return {
     isEnabled: () => enabled,
     setEnabled: (v) => { enabled = !!v; try { localStorage.setItem(KEY, enabled ? '1' : '0'); } catch (e) { /* 忽略 */ } },
     unlock: unlock,
     // 发牌：两声短促的牌面摩擦
     deal: () => { noise({ dur: 0.07, ffreq: 2600, vol: 0.2 }); noise({ dur: 0.06, ffreq: 2000, vol: 0.15, delay: 0.08 }); },
-    // 下注/跟注/加注：几声清脆的筹码碰撞 + 一点高频泛音
-    chips: () => {
+    // 下注/跟注：几声清脆的筹码碰撞 + 一点高频泛音 + 语音"跟注"
+    call: () => {
       noise({ dur: 0.03, ffreq: 6200, q: 2, vol: 0.3 });
       noise({ dur: 0.03, ffreq: 5400, q: 2, vol: 0.25, delay: 0.05 });
       noise({ dur: 0.04, ffreq: 7000, q: 2, vol: 0.2, delay: 0.1 });
       tone({ freq: 1900, dur: 0.05, type: 'triangle', vol: 0.06 });
+      speak('跟注');
     },
-    // 过牌：桌面轻叩两下
-    check: () => { tone({ freq: 230, dur: 0.07, vol: 0.22 }); tone({ freq: 200, dur: 0.07, vol: 0.18, delay: 0.12 }); },
-    // 弃牌：低沉下收的一甩
-    fold: () => { noise({ dur: 0.18, ffreq: 650, vol: 0.16 }); tone({ freq: 300, slide: 150, dur: 0.16, vol: 0.1 }); },
-    // 获胜/收池：悦耳上行琶音
+    // 加注：强力的筹码碰撞 + 上行音阶 + 语音"加注"
+    raise: () => {
+      noise({ dur: 0.04, ffreq: 7500, q: 2, vol: 0.35 });
+      noise({ dur: 0.04, ffreq: 6800, q: 2, vol: 0.3, delay: 0.06 });
+      noise({ dur: 0.05, ffreq: 8200, q: 2, vol: 0.25, delay: 0.12 });
+      tone({ freq: 800, dur: 0.08, type: 'square', vol: 0.08 });
+      tone({ freq: 1200, dur: 0.08, type: 'square', vol: 0.08, delay: 0.08 });
+      tone({ freq: 1600, dur: 0.1, type: 'square', vol: 0.08, delay: 0.16 });
+      speak('加注');
+    },
+    // 全押：沉重的下压音 + 连续低频鼓点 + 语音"全押"
+    allin: () => {
+      noise({ dur: 0.25, ffreq: 400, q: 1.5, vol: 0.3 });
+      tone({ freq: 120, dur: 0.15, vol: 0.15, type: 'sawtooth' });
+      tone({ freq: 80, dur: 0.2, vol: 0.2, delay: 0.1, type: 'sawtooth' });
+      tone({ freq: 60, dur: 0.25, vol: 0.25, delay: 0.2, type: 'sawtooth' });
+      speak('全押');
+    },
+    // 过牌：桌面重敲三声 + 语音"过牌"
+    check: () => {
+      tone({ freq: 220, dur: 0.08, vol: 0.3, type: 'square' });
+      tone({ freq: 200, dur: 0.08, vol: 0.25, delay: 0.1, type: 'square' });
+      tone({ freq: 180, dur: 0.08, vol: 0.2, delay: 0.2, type: 'square' });
+      speak('过牌');
+    },
+    // 弃牌：低沉下收的一甩 + 语音"弃牌"
+    fold: () => {
+      noise({ dur: 0.18, ffreq: 650, vol: 0.16 });
+      tone({ freq: 300, slide: 150, dur: 0.16, vol: 0.1 });
+      speak('弃牌');
+    },
+    // 获胜/收池：悦耳上行琶音 + 语音"获胜"
     win: () => {
       const seq = [523.25, 659.25, 783.99, 1046.5];
       for (let i = 0; i < seq.length; i++) tone({ freq: seq[i], dur: 0.18, type: 'triangle', vol: 0.2, delay: i * 0.1 });
+      setTimeout(() => speak('获胜'), 500);
     },
-    // 轮到你行动：两声提示
-    yourTurn: () => { tone({ freq: 880, dur: 0.09, vol: 0.2 }); tone({ freq: 1174.66, dur: 0.12, vol: 0.2, delay: 0.14 }); },
+    // 轮到你行动：两声提示 + 语音"轮到你"
+    yourTurn: () => {
+      tone({ freq: 880, dur: 0.09, vol: 0.2 });
+      tone({ freq: 1174.66, dur: 0.12, vol: 0.2, delay: 0.14 });
+      setTimeout(() => speak('轮到你'), 200);
+    },
     // 有玩家加入：一声轻快的弹跳音
     join: () => { tone({ freq: 520, slide: 780, dur: 0.1, type: 'triangle', vol: 0.18 }); },
     // 游戏开始：快速上行三音
@@ -479,9 +527,24 @@ function diffSound(prev, cur) {
   // 有人过牌（lastAction 新变为 check）
   const checkNow = cur.players.some((p, i) => p.lastAction === 'check' && !(prev.players[i] && prev.players[i].lastAction === 'check'));
   if (checkNow) SoundFX.check();
-  // 本轮下注总额或底池增加 → 筹码声（下注/跟注/加注/全下共用）
+  // 根据行动类型播放音效 + 语音
   const betSum = st => st.players.reduce((a, p) => a + (p.bet || 0), 0) + (st.pot || 0);
-  if (betSum(cur) > betSum(prev)) SoundFX.chips();
+  if (betSum(cur) > betSum(prev)) {
+    // 检测是否有全押（allIn 由 false 翻 true）
+    const allInNow = cur.players.some((p, i) => p.allIn && !(prev.players[i] && prev.players[i].allIn));
+    if (allInNow) {
+      SoundFX.allin();
+      return;
+    }
+    // 检测是否有加注（lastAction 新变为 raise）
+    const raiseNow = cur.players.some((p, i) => p.lastAction === 'raise' && !(prev.players[i] && prev.players[i].lastAction === 'raise'));
+    if (raiseNow) {
+      SoundFX.raise();
+      return;
+    }
+    // 否则是跟注/下注（call 或 blind）
+    SoundFX.call();
+  }
 }
 
 /* ---------------- 渲染 ---------------- */
