@@ -461,11 +461,10 @@ const SoundFX = (() => {
       tone({ freq: 60, dur: 0.25, vol: 0.25, delay: 0.2, type: 'sawtooth' });
       speak('全押');
     },
-    // 过牌：桌面重敲三声 + 语音"过牌"
+    // 过牌：桌面咚咚敲 2 声 + 语音"过牌"
     check: () => {
-      tone({ freq: 220, dur: 0.08, vol: 0.3, type: 'square' });
-      tone({ freq: 200, dur: 0.08, vol: 0.25, delay: 0.1, type: 'square' });
-      tone({ freq: 180, dur: 0.08, vol: 0.2, delay: 0.2, type: 'square' });
+      tone({ freq: 220, dur: 0.1, vol: 0.32, type: 'square' });
+      tone({ freq: 180, dur: 0.1, vol: 0.26, delay: 0.14, type: 'square' });
       speak('过牌');
     },
     // 弃牌：低沉下收的一甩 + 语音"弃牌"
