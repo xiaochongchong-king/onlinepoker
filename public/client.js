@@ -10,6 +10,7 @@ let token = sessionStorage.getItem('poker-online-token') || '';
 let session = null;           // 座位凭证 {code, playerId}：断线重连恢复原座
 try { session = JSON.parse(localStorage.getItem('poker-online-session') || 'null'); } catch (e) { session = null; }
 let lastRooms = {};           // 最近一次房间列表（按 code 索引），用于判断目标房间是否上锁
+let lastSoundState = null;    // 上一次渲染时的服务器状态（音效 diff 用；消息均为新对象，可直接持有引用）
 
 /* ---------------- 登录 ---------------- */
 function showLogin(msg) {
@@ -88,6 +89,7 @@ function connect() {
       localStorage.removeItem('poker-online-session');
       session = null;
       S = null;
+      lastSoundState = null;
       $('lobby').style.display = 'flex';
       $('lobby-entry').style.display = 'block';
       $('lobby-msg').textContent = m.msg || '房间已被房主解散';
@@ -348,6 +350,140 @@ function rankChar(r) {
   return String(r);
 }
 
+/* ---------------- 音效模块（Web Audio 现场合成，零外部资源，可随 Worker 内嵌下发） ---------------- */
+const SoundFX = (() => {
+  const KEY = 'poker-sound-enabled';
+  let enabled = localStorage.getItem(KEY) !== '0';   // 默认开，localStorage 持久化
+  let ctx = null;      // AudioContext 懒初始化（浏览器要求首个用户手势后才能出声）
+  let master = null;   // 主增益节点，统一控制整体音量
+
+  // 创建/恢复 AudioContext；在首个用户手势（pointerdown/keydown，捕获阶段）时调用
+  function unlock() {
+    if (!enabled) return;
+    if (!ctx) {
+      try {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return;
+        ctx = new AC();
+        master = ctx.createGain();
+        master.gain.value = 0.5;
+        master.connect(ctx.destination);
+      } catch (e) { return; }
+    }
+    if (ctx.state === 'suspended') { try { ctx.resume(); } catch (e) { /* 忽略 */ } }
+  }
+  window.addEventListener('pointerdown', unlock, true);
+  window.addEventListener('keydown', unlock, true);
+
+  // 所有播放入口统一检查：开关开启 + 上下文已就绪（未就绪时静默跳过，不报错）
+  function ready() { return enabled && ctx && ctx.state === 'running' && master; }
+
+  // 单音：freq 起始频率，slide 可选滑音目标频率，dur 时长（秒），delay 延后播放
+  function tone(opt) {
+    if (!ready()) return;
+    const t0 = ctx.currentTime + (opt.delay || 0);
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = opt.type || 'sine';
+    o.frequency.setValueAtTime(opt.freq, t0);
+    if (opt.slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, opt.slide), t0 + opt.dur);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(opt.vol || 0.2, t0 + (opt.attack || 0.008));
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + opt.dur);
+    o.connect(g); g.connect(master);
+    o.start(t0); o.stop(t0 + opt.dur + 0.05);
+  }
+
+  // 短噪声（牌面摩擦、筹码碰撞）：带通滤波的白噪声，线性衰减
+  function noise(opt) {
+    if (!ready()) return;
+    const t0 = ctx.currentTime + (opt.delay || 0);
+    const len = Math.max(1, Math.floor(ctx.sampleRate * opt.dur));
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+    const src = ctx.createBufferSource(); src.buffer = buf;
+    const f = ctx.createBiquadFilter();
+    f.type = 'bandpass';
+    f.frequency.value = opt.ffreq || 3000;
+    f.Q.value = opt.q || 1;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(opt.vol || 0.25, t0);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + opt.dur);
+    src.connect(f); f.connect(g); g.connect(master);
+    src.start(t0); src.stop(t0 + opt.dur + 0.05);
+  }
+
+  return {
+    isEnabled: () => enabled,
+    setEnabled: (v) => { enabled = !!v; try { localStorage.setItem(KEY, enabled ? '1' : '0'); } catch (e) { /* 忽略 */ } },
+    unlock: unlock,
+    // 发牌：两声短促的牌面摩擦
+    deal: () => { noise({ dur: 0.07, ffreq: 2600, vol: 0.2 }); noise({ dur: 0.06, ffreq: 2000, vol: 0.15, delay: 0.08 }); },
+    // 下注/跟注/加注：几声清脆的筹码碰撞 + 一点高频泛音
+    chips: () => {
+      noise({ dur: 0.03, ffreq: 6200, q: 2, vol: 0.3 });
+      noise({ dur: 0.03, ffreq: 5400, q: 2, vol: 0.25, delay: 0.05 });
+      noise({ dur: 0.04, ffreq: 7000, q: 2, vol: 0.2, delay: 0.1 });
+      tone({ freq: 1900, dur: 0.05, type: 'triangle', vol: 0.06 });
+    },
+    // 过牌：桌面轻叩两下
+    check: () => { tone({ freq: 230, dur: 0.07, vol: 0.22 }); tone({ freq: 200, dur: 0.07, vol: 0.18, delay: 0.12 }); },
+    // 弃牌：低沉下收的一甩
+    fold: () => { noise({ dur: 0.18, ffreq: 650, vol: 0.16 }); tone({ freq: 300, slide: 150, dur: 0.16, vol: 0.1 }); },
+    // 获胜/收池：悦耳上行琶音
+    win: () => {
+      const seq = [523.25, 659.25, 783.99, 1046.5];
+      for (let i = 0; i < seq.length; i++) tone({ freq: seq[i], dur: 0.18, type: 'triangle', vol: 0.2, delay: i * 0.1 });
+    },
+    // 轮到你行动：两声提示
+    yourTurn: () => { tone({ freq: 880, dur: 0.09, vol: 0.2 }); tone({ freq: 1174.66, dur: 0.12, vol: 0.2, delay: 0.14 }); },
+    // 有玩家加入：一声轻快的弹跳音
+    join: () => { tone({ freq: 520, slide: 780, dur: 0.1, type: 'triangle', vol: 0.18 }); },
+    // 游戏开始：快速上行三音
+    start: () => {
+      const seq = [392, 523.25, 659.25];
+      for (let i = 0; i < seq.length; i++) tone({ freq: seq[i], dur: 0.13, type: 'triangle', vol: 0.2, delay: i * 0.09 });
+    }
+  };
+})();
+
+/* 音效开关按钮：图标实时反映状态 */
+function updateSoundBtn() {
+  const on = SoundFX.isEnabled();
+  $('btn-sound').textContent = on ? '🔊' : '🔇';
+  $('btn-sound').title = on ? '声音：开（点击禁音）' : '声音：关（点击开启）';
+}
+
+/* 音效触发：对前后两份服务器状态做 diff（不解析日志文本） */
+function diffSound(prev, cur) {
+  if (!prev || !cur) return;
+  if (prev.code !== cur.code) return;   // 换房间/重连后的首份状态不发声
+  // 有玩家加入房间
+  if (cur.players.length > prev.players.length) SoundFX.join();
+  // 新一局开始：开始音 + 发牌音；本帧附带的盲注/底池变化不再逐个 diff
+  if (cur.handNo > prev.handNo || (!prev.started && cur.started)) {
+    SoundFX.start();
+    SoundFX.deal();
+    return;
+  }
+  // 公共牌增加 → 发牌
+  if (cur.community.length > prev.community.length) SoundFX.deal();
+  // 结算出现 → 获胜/收池
+  if (!prev.result && cur.result) SoundFX.win();
+  // 行动权切到我 → 提示音
+  if (cur.acting === cur.you && prev.acting !== cur.you) SoundFX.yourTurn();
+  // 有人弃牌（folded 由 false 翻 true）
+  const foldNow = cur.players.some((p, i) => p.folded && !(prev.players[i] && prev.players[i].folded));
+  if (foldNow) SoundFX.fold();
+  // 有人过牌（lastAction 新变为 check）
+  const checkNow = cur.players.some((p, i) => p.lastAction === 'check' && !(prev.players[i] && prev.players[i].lastAction === 'check'));
+  if (checkNow) SoundFX.check();
+  // 本轮下注总额或底池增加 → 筹码声（下注/跟注/加注/全下共用）
+  const betSum = st => st.players.reduce((a, p) => a + (p.bet || 0), 0) + (st.pot || 0);
+  if (betSum(cur) > betSum(prev)) SoundFX.chips();
+}
+
 /* ---------------- 渲染 ---------------- */
 function render() {
   if (!S) return;
@@ -359,6 +495,9 @@ function render() {
   }
   // 已在房间内（无论是否开局）都直接进牌桌
   $('lobby').style.display = 'none';
+  // 音效：基于上一次状态做 diff 触发（异常不影响渲染）
+  try { diffSound(lastSoundState, S); } catch (e) { console.error('[sound]', e); }
+  lastSoundState = S;
   $('room-code').textContent = S.code;
   $('hand-no').textContent = S.handNo;
   $('blinds-text').textContent = '盲注 10 / 20' + (S.straddleOn ? ' / 40（抓）' : '');
@@ -576,6 +715,13 @@ setInterval(() => {
 
 /* ---------------- 动作发送 ---------------- */
 function initControls() {
+  // 声音开关：点击切换开/禁音并持久化；开启时顺手解锁音频上下文并试听一声
+  updateSoundBtn();
+  $('btn-sound').addEventListener('click', () => {
+    SoundFX.setEnabled(!SoundFX.isEnabled());
+    updateSoundBtn();
+    if (SoundFX.isEnabled()) { SoundFX.unlock(); SoundFX.yourTurn(); }
+  });
   $('btn-fold').addEventListener('click', () => ws.send(JSON.stringify({ t: 'act', act: { type: 'fold' } })));
   $('btn-call').addEventListener('click', () => {
     ws.send(JSON.stringify({ t: 'act', act: { type: myToCall() > 0 ? 'call' : 'check' } }));
