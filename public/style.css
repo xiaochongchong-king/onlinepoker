@@ -449,6 +449,62 @@ body {
 .room-code-tip { font-size: 12px; color: #9fb0d0; }
 #lobby-conn { position: absolute; bottom: 18px; left: 0; right: 0; font-size: 12px; color: #7d8aa8; }
 
+/* 房间加锁：创建区开关 + 口令输入 + 列表锁标 + 口令弹窗 */
+.lobby-create { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.lobby-create #btn-create { margin-bottom: 0; flex: 1; }
+.lock-toggle {
+  display: flex; align-items: center; gap: 5px; white-space: nowrap;
+  font-size: 13px; color: #cdd8ee; cursor: pointer; user-select: none;
+}
+.lock-toggle input { width: 16px; height: 16px; accent-color: #f5c860; cursor: pointer; }
+#create-pass {
+  width: 96px !important; margin-bottom: 0; letter-spacing: 4px; text-align: center;
+  background: #0e1526; border: 1px solid #5a6f9e; border-radius: 8px;
+  color: #ffd97a; padding: 10px 8px; font-size: 15px; outline: none;
+}
+#create-pass:focus { border-color: #f5c860; }
+.lobby-join #join-pass {
+  flex: 0 0 88px; margin-bottom: 0; letter-spacing: 4px; text-align: center;
+  background: #0e1526; border: 1px solid #5a6f9e; border-radius: 8px;
+  color: #ffd97a; padding: 11px 8px; font-size: 15px; outline: none;
+}
+.lobby-join #join-pass:focus { border-color: #f5c860; }
+.rl-lock { font-size: 15px; filter: grayscale(0.1); }
+/* 上锁房间口令弹窗 */
+#joinpass-overlay {
+  position: fixed; inset: 0; background: rgba(4, 8, 18, 0.72);
+  display: none; align-items: center; justify-content: center; z-index: 58;
+}
+#joinpass-panel {
+  background: linear-gradient(180deg, #1d2a4a, #131d36);
+  border: 2px solid #c9a13b; border-radius: 14px;
+  min-width: 320px; max-width: 420px; padding: 22px 28px;
+  box-shadow: 0 16px 60px rgba(0,0,0,0.7); text-align: center;
+}
+#joinpass-panel h2 { font-size: 18px; color: #f5c860; margin-bottom: 12px; letter-spacing: 2px; }
+.jp-code { font-size: 16px; color: #ffd97a; font-weight: bold; letter-spacing: 4px; margin-bottom: 14px; }
+#joinpass-input {
+  width: 180px; padding: 11px 14px; font-size: 22px; font-weight: bold; text-align: center;
+  letter-spacing: 8px; background: #0e1526; color: #ffd97a;
+  border: 1px solid #5a6f9e; border-radius: 8px; outline: none; margin-bottom: 12px;
+}
+#joinpass-input:focus { border-color: #f5c860; }
+#joinpass-tip { font-size: 13px; color: #e79a9a; min-height: 18px; margin-bottom: 12px; }
+.jp-btns { display: flex; gap: 12px; justify-content: center; }
+.jp-btns button {
+  border: none; border-radius: 8px; padding: 10px 26px;
+  font-size: 15px; font-weight: bold; cursor: pointer; color: #fff;
+}
+#btn-joinpass-ok { background: linear-gradient(180deg, #2e9e57, #1c6e3b); }
+#btn-joinpass-cancel { background: #31405f; border: 1px solid #5a6f9e !important; }
+.jp-btns button:hover { filter: brightness(1.15); }
+/* 牌桌内锁态提示（等待开局面板） */
+.wait-lock {
+  font-size: 13px; color: #ffd97a; margin-bottom: 6px;
+  background: rgba(201,161,59,0.15); border: 1px solid rgba(201,161,59,0.4);
+  border-radius: 8px; padding: 3px 12px;
+}
+
 /* ==================== 移动端适配（≤768px） ==================== */
 @media (max-width: 768px) {
   #topbar { flex-wrap: wrap; gap: 6px; padding: 6px 10px; }
@@ -535,5 +591,12 @@ body {
   #btn-straddle { padding: 4px 10px; font-size: 12px; }
   #straddle-panel { min-width: 0; width: 90vw; padding: 16px 18px; }
   #lobby-panel { min-width: 0; width: 92vw; padding: 22px 20px; }
+  .lobby-create { flex-wrap: wrap; gap: 8px; }
+  .lobby-create #btn-create { flex: 1 1 100%; }
+  #create-pass { width: 88px !important; font-size: 14px; padding: 9px 6px; }
+  .lock-toggle { font-size: 12px; }
+  .lobby-join #join-pass { flex: 0 0 76px; font-size: 13px; padding: 9px 6px; }
+  #joinpass-panel { min-width: 0; width: 90vw; padding: 18px 20px; }
+  #joinpass-input { width: 150px; font-size: 20px; }
   #lobby-code { font-size: 34px; letter-spacing: 8px; }
 }
