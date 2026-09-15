@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <title>德州扑克 · 在线房间</title>
-<link rel="stylesheet" href="/style.css?v=29">
+<link rel="stylesheet" href="/style.css?v=30">
 </head>
 <body>
 
@@ -122,7 +122,7 @@
   </div>
 </div>
 
-<div id="joinpass-overlay" style="display:none; position:fixed; inset:0; z-index:58; background:rgba(4,8,18,0.72)">
+<div id="joinpass-overlay" style="display:none">
   <div id="joinpass-panel">
     <h2>🔒 房间已上锁</h2>
     <div id="joinpass-code" class="jp-code"></div>
@@ -148,7 +148,7 @@
       <input id="name-input" maxlength="8" placeholder="你的昵称（最多8字）">
       <div class="lobby-create">
         <button id="btn-create">创建房间</button>
-        <label class="lock-toggle" for="create-lock"><input type="checkbox" id="create-lock"> 🔒 加锁</label>
+        <label class="lock-toggle" for="create-lock"><input type="checkbox" id="create-lock"><span class="lk">🔒 加锁</span></label>
         <input id="create-pass" maxlength="4" inputmode="numeric" placeholder="4位口令" style="display:none">
       </div>
       <div id="room-list-wrap">
@@ -166,6 +166,6 @@
   </div>
 </div>
 
-<script src="/client.js?v=28"></script>
+<script src="/client.js?v=30"></script>
 </body>
 </html>
