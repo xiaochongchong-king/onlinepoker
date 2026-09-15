@@ -357,9 +357,16 @@ const SoundFX = (() => {
   let ctx = null;      // AudioContext 懒初始化（浏览器要求首个用户手势后才能出声）
   let master = null;   // 主增益节点，统一控制整体音量
 
+  // —— TTS 相关模块级状态（Web Speech API）——
+  let voices = [];             // 缓存语音列表（部分浏览器异步加载，需 voiceschanged 事件刷新）
+  let ttsActivated = false;    // speechSynthesis 是否已在用户手势同步栈内被唤醒
+  let lastUtterance = null;    // 持有最近一次 utterance 引用，防止被 GC 回收导致不发音（Chrome 已知行为）
+
   // 创建/恢复 AudioContext；在首个用户手势（pointerdown/keydown，捕获阶段）时调用
   function unlock() {
     if (!enabled) return;
+    // 在用户手势同步栈内唤醒语音引擎（TTS 必须在手势内首次 speak 才被允许，diffSound 是异步触发不在手势栈内）
+    try { wakeTTS(); } catch (e) { /* 忽略 */ }
     if (!ctx) {
       try {
         const AC = window.AudioContext || window.webkitAudioContext;
@@ -374,6 +381,47 @@ const SoundFX = (() => {
   }
   window.addEventListener('pointerdown', unlock, true);
   window.addEventListener('keydown', unlock, true);
+
+  // —— TTS 语音引擎辅助函数 ——
+  // 加载并缓存可用语音；getVoices() 在部分浏览器中初始返回空数组，需监听 voiceschanged 刷新
+  function loadVoices() {
+    if (!('speechSynthesis' in window)) return;
+    try { voices = window.speechSynthesis.getVoices() || []; }
+    catch (e) { voices = []; }
+  }
+  // 优先挑选中文语音：lang 以 'zh' 开头，或 name 含 中文/普通话/Chinese/Mandarin；无则回退 null（由浏览器用默认语音）
+  function pickVoice() {
+    if (!voices || voices.length === 0) return null;
+    for (const v of voices) {
+      if (v.lang && v.lang.toLowerCase().indexOf('zh') === 0) return v;
+    }
+    for (const v of voices) {
+      const n = (v.name || '').toLowerCase();
+      if (n.indexOf('chinese') >= 0 || n.indexOf('中文') >= 0 || n.indexOf('普通话') >= 0 || n.indexOf('mandarin') >= 0) return v;
+    }
+    return null;
+  }
+  // 在用户手势同步调用栈内唤醒语音引擎：浏览器要求首次 speechSynthesis.speak() 发生在手势内，否则后续异步（如 WS 驱动的 diffSound）speak 被拦截
+  function wakeTTS() {
+    if (!enabled) return;
+    if (!('speechSynthesis' in window)) return;
+    if (ttsActivated) return;
+    try {
+      loadVoices();              // 在手势内触达 getVoices()，触发 voices 异步加载
+      const u = new SpeechSynthesisUtterance('');
+      u.volume = 0;              // 静音，不发出真实词，仅用于唤醒引擎
+      u.onend = function () {};
+      u.onerror = function () {};
+      lastUtterance = u;         // 同样保持引用，防止被 GC
+      window.speechSynthesis.speak(u);
+      ttsActivated = true;
+    } catch (e) { /* 忽略 TTS 不支持的情况 */ }
+  }
+  // 初始化时加载一次 voices，并监听异步刷新
+  if ('speechSynthesis' in window) {
+    loadVoices();
+    try { window.speechSynthesis.onvoiceschanged = loadVoices; } catch (e) { /* 忽略 */ }
+  }
 
   // 所有播放入口统一检查：开关开启 + 上下文已就绪（未就绪时静默跳过，不报错）
   function ready() { return enabled && ctx && ctx.state === 'running' && master; }
@@ -417,21 +465,36 @@ const SoundFX = (() => {
   // TTS 语音：使用 Web Speech API 播报中文语音
   function speak(text) {
     if (!enabled) return;
+    if (!('speechSynthesis' in window)) return;
     try {
-      if ('speechSynthesis' in window) {
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'zh-CN';
-        utterance.rate = 1.0;
-        utterance.pitch = 1.0;
-        utterance.volume = 0.8;
-        window.speechSynthesis.speak(utterance);
-      }
-    } catch (e) { /* 忽略 TTS 不支持的情况 */ }
+      // 若引擎尚未被用户手势唤醒，补一次唤醒（部分浏览器允许后续异步 speak，但保险起见）
+      if (!ttsActivated) { try { wakeTTS(); } catch (e) { /* 忽略 */ } }
+      const utterance = new SpeechSynthesisUtterance(text == null ? '' : String(text));
+      const v = pickVoice();        // 优先中文语音，无则回退默认（不静默抛弃）
+      if (v) utterance.voice = v;
+      utterance.lang = 'zh-CN';
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+      utterance.volume = 0.8;
+      utterance.onerror = function (ev) {
+        console.warn('[sound] TTS error', ev && ev.error ? ev.error : ev);
+      };
+      // 持有引用，防止 utterance 被 GC 回收导致不发音（Chrome 已知行为）
+      lastUtterance = utterance;
+      window.speechSynthesis.speak(utterance);
+    } catch (e) {
+      console.warn('[sound] TTS error', e);
+    }
   }
 
   return {
     isEnabled: () => enabled,
-    setEnabled: (v) => { enabled = !!v; try { localStorage.setItem(KEY, enabled ? '1' : '0'); } catch (e) { /* 忽略 */ } },
+    setEnabled: (v) => {
+      enabled = !!v;
+      try { localStorage.setItem(KEY, enabled ? '1' : '0'); } catch (e) { /* 忽略 */ }
+      // 开启音效时，于本次用户手势（点击按钮）调用栈内尝试唤醒语音引擎
+      if (enabled) { try { wakeTTS(); } catch (e) { /* 忽略 */ } }
+    },
     unlock: unlock,
     // 发牌：两声短促的牌面摩擦
     deal: () => { noise({ dur: 0.07, ffreq: 2600, vol: 0.2 }); noise({ dur: 0.06, ffreq: 2000, vol: 0.15, delay: 0.08 }); },
