@@ -27,6 +27,12 @@ body {
   padding: 6px 16px; border-radius: 6px; cursor: pointer; font-size: 13px;
 }
 #btn-leave:hover { background: #41538a; }
+/* 声音开关：顶栏图标按钮，与其它顶栏按钮同风格 */
+#btn-sound {
+  background: #31405f; color: #e8ecf4; border: 1px solid #5a6f9e;
+  padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 15px; line-height: 1;
+}
+#btn-sound:hover { background: #41538a; }
 
 /* ==================== 主区域 ==================== */
 #main { flex: 1; display: flex; min-height: 0; }
