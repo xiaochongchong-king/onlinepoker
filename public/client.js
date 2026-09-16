@@ -226,6 +226,7 @@ function initLobby() {
     const msg = { t: 'create', name: myName };
     if (locked) { msg.locked = true; msg.password = password; }
     ws.send(JSON.stringify(msg));
+    SoundFX.unlock();
     $('create-pass').value = '';
     $('lobby-msg').textContent = '';
   });
@@ -233,6 +234,7 @@ function initLobby() {
     const code = $('code-input').value.toUpperCase().trim();
     if (code.length !== 4) { $('lobby-msg').textContent = '请输入 4 位房间码'; return; }
     tryJoin(code);
+    SoundFX.unlock();
   });
   $('btn-start2').addEventListener('click', () => ws.send(JSON.stringify({ t: 'start' })));
   // 准备/取消准备（等待面板与局内准备区共用）
@@ -247,6 +249,7 @@ function initLobby() {
     const row = e.target && e.target.closest ? e.target.closest('.rl-row') : null;
     if (!row) return;
     tryJoin(row.dataset.code);
+    SoundFX.unlock();
   });
   setInterval(() => {
     if ($('lobby').style.display !== 'none' && $('lobby-entry').style.display === 'block') requestRooms();
@@ -598,8 +601,8 @@ function diffSound(prev, cur) {
       SoundFX.allin();
       return;
     }
-    // 检测是否有加注（lastAction 新变为 raise）
-    const raiseNow = cur.players.some((p, i) => p.lastAction === 'raise' && !(prev.players[i] && prev.players[i].lastAction === 'raise'));
+    // 检测是否有加注（lastAction 形如 'raise 60' / 'bet 40'，用前缀匹配；首注 wasOpen 时为 'bet'）
+    const raiseNow = cur.players.some((p, i) => /^(raise|bet)/i.test(p.lastAction || '') && !/^(raise|bet)/i.test((prev.players[i] && prev.players[i].lastAction) || ''));
     if (raiseNow) {
       SoundFX.raise();
       return;
@@ -843,9 +846,10 @@ function initControls() {
   // 声音开关：点击切换开/禁音并持久化；开启时顺手解锁音频上下文并试听一声
   updateSoundBtn();
   $('btn-sound').addEventListener('click', () => {
+    SoundFX.unlock();
     SoundFX.setEnabled(!SoundFX.isEnabled());
     updateSoundBtn();
-    if (SoundFX.isEnabled()) { SoundFX.unlock(); SoundFX.yourTurn(); }
+    if (SoundFX.isEnabled()) { SoundFX.yourTurn(); }
   });
   $('btn-fold').addEventListener('click', () => ws.send(JSON.stringify({ t: 'act', act: { type: 'fold' } })));
   $('btn-call').addEventListener('click', () => {
