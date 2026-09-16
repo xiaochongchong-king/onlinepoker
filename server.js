@@ -812,6 +812,8 @@ const wss = new WebSocketServer({
   }
 });
 wss.on('connection', (ws) => {
+  ws.isAlive = true;
+  ws.on('pong', () => { ws.isAlive = true; });
   ws.on('message', (msg) => {
     try { handleMessage(ws, msg); } catch (e) { console.error('msg error:', e.message); }
   });
@@ -819,10 +821,17 @@ wss.on('connection', (ws) => {
   ws.on('error', () => {});
 });
 
-/* 心跳保活：防代理/网关掐断闲置 WS（浏览器自动应答 pong） */
+/* 心跳保活：每 15s 发 ping，并清理未回应 pong 的死亡连接
+   浏览器自动回 pong → isAlive 置 true；若连续一轮未回应则 terminate，
+   防止僵尸连接堆积导致内存上涨、最终 OOM 触发整容器重启（表现为全员掉线） */
+const HEARTBEAT_MS = 15000;
 setInterval(() => {
-  for (const ws of wss.clients) { try { ws.ping(); } catch (e) { /* 忽略 */ } }
-}, 30000);
+  for (const ws of wss.clients) {
+    if (ws.isAlive === false) { try { ws.terminate(); } catch (e) { /* 忽略 */ } continue; }
+    ws.isAlive = false;
+    try { ws.ping(); } catch (e) { /* 忽略 */ }
+  }
+}, HEARTBEAT_MS);
 
 /* 房间清扫：全员离线 10 分钟删除 */
 setInterval(() => {
